@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))                       # use rag.py, retrieval.py ... from the repository root
 
 os.environ["LLM_BACKEND"] = "groq"                  # must be set before rag is imported
+if "GROQ_API_KEY" not in st.secrets:
+    st.error('Missing secret: add GROQ_API_KEY = "gsk_..." in the app settings (Manage app -> Settings -> Secrets).')
+    st.stop()
 os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
 
 from sentence_transformers import CrossEncoder, SentenceTransformer  # noqa: E402
