@@ -141,6 +141,7 @@
   details ul { margin: 6px 0 0; padding-left: 18px; }
 
   .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px 60px; }
+  .suggestions .group-title { flex-basis: 100%; font-size: 13px; margin: 6px 0 -2px; opacity: .85; }
   .suggestions button {
     font-family: inherit; font-size: 14px; color: var(--ink); cursor: pointer;
     background: var(--cream); border: 2px solid var(--ink); border-radius: 10px; padding: 5px 10px;
@@ -510,13 +511,20 @@ const SOURCE_LABELS = {
   "igu-steps": (p) => `IGU steps · p.${p}`,
   "igu-slides": (p) => `IGU slides · ${p}`
 };
-const EXAMPLES = [
-  "How much monthly grant does IGU pay for a traineeship in Italy?",
-  "How long can a Youth Exchange last?",
-  "Is there extra money for travel by train instead of plane?",
-  "Which documents do I need after returning to get the last 20%?",
-  "Can I have a relationship during Erasmus?"
+const EXAMPLE_GROUPS = [
+  ["📄 answered from the documents, with pages", [
+    "How much monthly grant does IGU pay for a traineeship in Italy?",
+    "Which documents do I need after returning to get the last 20%?",
+    "Is there extra money for travel by train instead of plane?"
+  ]],
+  ["✏️ short questions work too", [
+    "can i go to italy?", "visa help?", "how long is erasmus?"
+  ]],
+  ["💭 not in the documents? I'll give a labelled tip", [
+    "what should I pack for Erasmus?", "how do I make friends abroad?"
+  ]]
 ];
+const PLACEHOLDERS = ["type your question…", "e.g. can i go to spain?", "e.g. money for train?", "e.g. what should I pack?", "e.g. youth exchange age?"];
 
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const label = (s) => (SOURCE_LABELS[s.source] || ((p) => `${s.source} · p.${p}`))(s.page);
@@ -534,14 +542,27 @@ function addMessage(who, html, extraClass = "") {
 function showSuggestions() {
   const box = document.createElement("div");
   box.className = "suggestions";
-  EXAMPLES.forEach((q) => {
-    const b = document.createElement("button");
-    b.type = "button"; b.textContent = q;
-    b.onclick = () => { box.remove(); ask(q); };
-    box.appendChild(b);
+  EXAMPLE_GROUPS.forEach(([title, questions]) => {
+    const head = document.createElement("div");
+    head.className = "group-title"; head.textContent = title;
+    box.appendChild(head);
+    questions.forEach((q) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = q;
+      b.onclick = () => { box.remove(); ask(q); };
+      box.appendChild(b);
+    });
   });
   chat.appendChild(box);
 }
+
+/* the input box shows a different example every few seconds */
+let placeholderIndex = 0;
+setInterval(() => {
+  if (document.activeElement === input || input.value) return;
+  placeholderIndex = (placeholderIndex + 1) % PLACEHOLDERS.length;
+  input.placeholder = PLACEHOLDERS[placeholderIndex];
+}, 3000);
 
 /* ---------- talking to the backend ----------
    Two ways to run this page:
@@ -625,7 +646,7 @@ form.addEventListener("submit", (e) => {
 });
 
 /* ---------- start ---------- */
-addMessage("bot", "ciao! bonjour! merhaba! ✧ ask me anything about Erasmus+. I read the 466-page EU Programme Guide and IGU's traineeship documents, and I tell you which pages I used.");
+addMessage("bot", "ciao! bonjour! merhaba! ✧ ask me anything about Erasmus+, even in a few words. I answer from the EU Programme Guide and IGU's documents with page numbers, and if they don't cover it, I give a tip marked in yellow ♡");
 showSuggestions();
 
 if (IN_STREAMLIT) {
