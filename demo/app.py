@@ -20,8 +20,19 @@ if "GROQ_API_KEY" not in st.secrets:
     st.stop()
 os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
 
+import importlib  # noqa: E402
+
 from sentence_transformers import CrossEncoder, SentenceTransformer  # noqa: E402
 
+import memory_store  # noqa: E402
+import rag  # noqa: E402
+import retrieval  # noqa: E402
+
+# Streamlit only reloads files in this folder when the repository updates; the project files one folder up
+# would stay old in memory (an older answer() with a different signature). Reload them on every run: cheap,
+# because the models are cached separately with st.cache_resource.
+for module in (retrieval, memory_store, rag):
+    importlib.reload(module)
 from memory_store import MemoryStore  # noqa: E402
 from rag import LLM_MODEL, answer  # noqa: E402
 from retrieval import EMBEDDING_MODEL, RERANKER_NAME, BM25Index  # noqa: E402
