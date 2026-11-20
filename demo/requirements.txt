@@ -1,5 +1,5 @@
-fastapi
-uvicorn
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
 sentence-transformers
 rank-bm25
 snowballstemmer
@@ -7,3 +7,4 @@ scikit-learn
 numpy
 requests
 pydantic
+streamlit

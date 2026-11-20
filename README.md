@@ -8,11 +8,11 @@ Ask questions about the Erasmus+ programme (studies, traineeships, youth exchang
 | Istanbul Gelişim University (IGU) step-by-step guide | what the student has to do before, during and after the traineeship | 9 pages |
 | IGU orientation slides | grant amounts, documents, deadlines (slides are images, read with OCR) | 20 slides |
 
-**Live demo:** [huggingface.co/spaces/rabiaozers/erasmus-assistant](https://huggingface.co/spaces/rabiaozers/erasmus-assistant) (a chat page I designed in pastel pixel-art style; the free server sleeps when idle, so the first visit takes a minute)
+**Live demo:** [erasmus-assistant.streamlit.app](https://erasmus-assistant.streamlit.app) (a chat page I designed in pastel pixel-art style with a European theme; the free server sleeps when idle, so the first visit takes a minute)
 
 <!-- demo GIF: ![demo](demo.gif) -->
 
-Locally everything runs on a laptop: PostgreSQL + pgvector in Docker and a 3B-parameter LLM with Ollama on a 4 GB GPU. The public demo keeps the chunks in memory and uses a 120B model through Groq's free API.
+Locally everything runs on a laptop: PostgreSQL + pgvector in Docker and a 3B-parameter LLM with Ollama on a 4 GB GPU. The public demo runs on Streamlit Community Cloud: it keeps the chunks in memory and uses a 120B model through Groq's free API.
 
 ```mermaid
 flowchart LR
@@ -130,7 +130,7 @@ docker compose up --build
 | `app.py` | FastAPI: chat page at `/`, `POST /ask`, `GET /health` |
 | `web/index.html` | the chat page: HTML, CSS and JavaScript, with pixel-art sprites drawn in code |
 | `memory_store.py`, `export_index.py` | the demo keeps chunks and embeddings in memory instead of PostgreSQL |
-| `space/`, `deploy_space.py` | Dockerfile and upload script for the Hugging Face Space (Groq key stored as a Space secret) |
+| `demo/app.py` | the public demo on Streamlit Community Cloud: the same chat page runs as a Streamlit component, Python answers with the same retrieval code, the LLM runs on Groq |
 | `evaluate.py`, `eval_answers.py`, `metrics.py` | retrieval and answer evaluation |
 | `eval/questions.csv` | 34 questions with answers and correct pages |
 | `tests/` | unit tests (chunking, RRF, tokenizer, metrics), run by GitHub Actions |

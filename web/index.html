@@ -95,6 +95,8 @@
     padding: 18px 12px;
     scroll-behavior: smooth;
   }
+  html.in-streamlit .chat { height: 560px; }
+  html.in-streamlit body { padding-top: 24px; }
   .chat::-webkit-scrollbar { width: 10px; }
   .chat::-webkit-scrollbar-thumb { background: var(--pink); border: 2px solid var(--ink); border-radius: 6px; }
 
@@ -536,24 +538,64 @@ function showSuggestions() {
   chat.appendChild(box);
 }
 
+/* ---------- talking to the backend ----------
+   Two ways to run this page:
+   - served by FastAPI (app.py): POST /ask and GET /health
+   - inside a Streamlit component (demo/app.py, the free public demo): the question goes to Python
+     with setComponentValue, and the answer comes back in the next "render" message */
+const IN_STREAMLIT = new URLSearchParams(location.search).has("streamlitUrl");
+const waiting = new Map();          // request id -> callback, for answers coming back from Streamlit
+
+function toStreamlit(type, data = {}) {
+  window.parent.postMessage({ isStreamlitMessage: true, type, ...data }, "*");
+}
+function resizeFrame() {
+  if (IN_STREAMLIT) toStreamlit("streamlit:setFrameHeight", { height: document.documentElement.scrollHeight });
+}
+function setOnline(health) {
+  document.getElementById("online-dot").classList.remove("off");
+  document.getElementById("status-text").textContent = "Online";
+  document.getElementById("status-text").title = `${health.chunks.toLocaleString("en")} chunks indexed · ${health.llm}`;
+}
+function setOffline() {
+  document.getElementById("online-dot").classList.add("off");
+  document.getElementById("status-text").textContent = "Offline";
+}
+
+async function requestAnswer(question) {
+  if (!IN_STREAMLIT) {
+    const res = await fetch("ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) });
+    if (!res.ok) throw new Error(res.status === 422 ? "Please write a slightly longer question." : `server said ${res.status}`);
+    return res.json();
+  }
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return new Promise((resolve, reject) => {
+    waiting.set(id, (r) => (r.error ? reject(new Error(r.error)) : resolve(r)));
+    toStreamlit("streamlit:setComponentValue", { value: { id, question }, dataType: "json" });
+    setTimeout(() => { if (waiting.delete(id)) reject(new Error("no answer after 2 minutes")); }, 120000);
+  });
+}
+
+function showAnswer(data) {
+  if (data.found) {
+    const chips = data.sources.map((s) => `<span class="chip">${escapeHtml(label(s))}</span>`).join("");
+    const found = data.retrieved.map((r) => `<li>${escapeHtml(label(r))} <small>(score ${r.score})</small></li>`).join("");
+    addMessage("bot", `${escapeHtml(data.answer)}
+      ${chips ? `<div class="sources">${chips}</div>` : ""}
+      <details><summary>what the search found</summary><ul>${found}</ul></details>`);
+  } else {
+    addMessage("bot", `${escapeHtml(data.answer)}<br><small>(I only answer from the documents, so I won't guess ♡)</small>`, "notfound");
+  }
+}
+
 async function ask(question) {
   addMessage("user", escapeHtml(question));
   const typing = addMessage("bot", `<div class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`);
   sendBtn.disabled = true;
   try {
-    const res = await fetch("ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) });
-    if (!res.ok) throw new Error(res.status === 422 ? "Please write a slightly longer question." : `server said ${res.status}`);
-    const data = await res.json();
+    const data = await requestAnswer(question);
     typing.remove();
-    if (data.found) {
-      const chips = data.sources.map((s) => `<span class="chip">${escapeHtml(label(s))}</span>`).join("");
-      const found = data.retrieved.map((r) => `<li>${escapeHtml(label(r))} <small>(score ${r.score})</small></li>`).join("");
-      addMessage("bot", `${escapeHtml(data.answer)}
-        ${chips ? `<div class="sources">${chips}</div>` : ""}
-        <details><summary>what the search found</summary><ul>${found}</ul></details>`);
-    } else {
-      addMessage("bot", `${escapeHtml(data.answer)}<br><small>(I only answer from the documents, so I won't guess ♡)</small>`, "notfound");
-    }
+    showAnswer(data);
   } catch (err) {
     typing.remove();
     addMessage("bot", `oh no, something went wrong (${escapeHtml(err.message)}). Try again in a minute?`, "error");
@@ -576,13 +618,21 @@ form.addEventListener("submit", (e) => {
 addMessage("bot", "ciao! bonjour! merhaba! ✧ ask me anything about Erasmus+. I read the 466-page EU Programme Guide and IGU's traineeship documents, and I tell you which pages I used.");
 showSuggestions();
 
-fetch("health").then((r) => r.json()).then((h) => {
-  document.getElementById("status-text").textContent = "Online";
-  document.getElementById("status-text").title = `${h.chunks.toLocaleString("en")} chunks indexed`;
-}).catch(() => {
-  document.getElementById("online-dot").classList.add("off");
-  document.getElementById("status-text").textContent = "Offline";
-});
+if (IN_STREAMLIT) {
+  document.documentElement.classList.add("in-streamlit");
+  window.addEventListener("message", (event) => {
+    if (event.data?.type !== "streamlit:render") return;
+    const args = event.data.args || {};
+    if (args.health) setOnline(args.health);
+    const result = args.result;
+    if (result && waiting.has(result.id)) { waiting.get(result.id)(result); waiting.delete(result.id); }
+    resizeFrame();
+  });
+  toStreamlit("streamlit:componentReady", { apiVersion: 1 });
+  new ResizeObserver(resizeFrame).observe(document.body);
+} else {
+  fetch("health").then((r) => r.json()).then(setOnline).catch(setOffline);
+}
 </script>
 </body>
 </html>
