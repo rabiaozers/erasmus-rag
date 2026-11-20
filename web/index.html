@@ -692,8 +692,8 @@ function applyLang() {
   document.querySelectorAll(".langs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
   input.placeholder = t("placeholders")[0]; placeholderIndex = 0;
   if (online !== null) document.getElementById("status-text").textContent = t(online ? "online" : "offline");
-  // before the first question, show the welcome and the examples in the new language
-  if (!chat.querySelector(".msg.user")) { chat.innerHTML = ""; addMessage("bot", t("welcome")); showSuggestions(); }
+  // start a fresh chat in the new language: welcome message and example questions
+  chat.innerHTML = ""; addMessage("bot", t("welcome")); showSuggestions();
   resizeFrame();
 }
 document.querySelectorAll(".langs button").forEach((b) => b.addEventListener("click", () => {
