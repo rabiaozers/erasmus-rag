@@ -8,6 +8,10 @@ Ask questions about the Erasmus+ programme (studies, traineeships, youth exchang
 | Istanbul Gelişim University (IGU) step-by-step guide | what the student has to do before, during and after the traineeship | 9 pages |
 | IGU orientation slides | grant amounts, documents, deadlines (slides are images, read with OCR) | 20 slides |
 
+**Live demo:** [huggingface.co/spaces/rabiaozers/erasmus-assistant](https://huggingface.co/spaces/rabiaozers/erasmus-assistant) (a chat page I designed in pastel pixel-art style; the free server sleeps when idle, so the first visit takes a minute)
+
+<!-- demo GIF: ![demo](demo.gif) -->
+
 Locally everything runs on a laptop: PostgreSQL + pgvector in Docker and a 3B-parameter LLM with Ollama on a 4 GB GPU. The public demo keeps the chunks in memory and uses a 120B model through Groq's free API.
 
 ```mermaid
@@ -108,7 +112,7 @@ python ingest.py            # ~2 min on CPU: 1,861 chunks into pgvector
 python evaluate.py          # retrieval recall@k for every method
 python eval_answers.py      # answers to all 34 questions -> eval/answers_<model>.csv
 
-# 4. API (http://localhost:8000/docs)
+# 4. Chat page at http://localhost:8000 (API docs at /docs)
 uvicorn app:app
 #    or everything in Docker (Ollama stays on the host for the GPU):
 docker compose up --build
@@ -123,7 +127,10 @@ docker compose up --build
 | `db.py` | table schema, pgvector search, PostgreSQL full-text search |
 | `retrieval.py` | BM25, Reciprocal Rank Fusion, reranker |
 | `rag.py` | prompt, Ollama call with a JSON schema, citations |
-| `app.py` | FastAPI: `POST /ask`, `GET /health` |
+| `app.py` | FastAPI: chat page at `/`, `POST /ask`, `GET /health` |
+| `web/index.html` | the chat page: HTML, CSS and JavaScript, with pixel-art sprites drawn in code |
+| `memory_store.py`, `export_index.py` | the demo keeps chunks and embeddings in memory instead of PostgreSQL |
+| `space/`, `deploy_space.py` | Dockerfile and upload script for the Hugging Face Space (Groq key stored as a Space secret) |
 | `evaluate.py`, `eval_answers.py`, `metrics.py` | retrieval and answer evaluation |
 | `eval/questions.csv` | 34 questions with answers and correct pages |
 | `tests/` | unit tests (chunking, RRF, tokenizer, metrics), run by GitHub Actions |

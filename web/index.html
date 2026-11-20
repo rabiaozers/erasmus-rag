@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>erasmus.exe · Erasmus+ Assistant</title>
+<meta name="description" content="Ask questions about Erasmus+ and get answers with page citations from the EU Programme Guide 2027 and IGU traineeship documents.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #5b3a55;          /* outlines and dark text */
+    --pink: #f58bb5;         /* assistant bubble */
+    --pink-deep: #e0569a;    /* title text, user text */
+    --pink-pale: #ffd6e7;    /* window */
+    --pink-paler: #ffe9f3;   /* bars */
+    --lilac: #c9d4ff;        .bunting { margin: -6px 2px 2px; line-height: 0; }
+
+  /* chat area */
+    --lilac-2: #dcd0ff;
+    --cream: #fffaf6;
+    --shadow: #c9a3d9;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  html, body { overflow-x: hidden; }
+  #decorations { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  body {
+    font-family: "Pixelify Sans", ui-monospace, monospace;
+    color: var(--ink);
+    background-color: #efe3ff;
+    background-image:
+      linear-gradient(rgba(255,255,255,.35) 2px, transparent 2px),
+      linear-gradient(90deg, rgba(255,255,255,.35) 2px, transparent 2px),
+      repeating-conic-gradient(#f8d6ec 0 25%, #eadfff 0 50%);
+    background-size: 48px 48px, 48px 48px, 96px 96px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 16px 24px;
+    overflow-x: hidden;
+  }
+
+  /* floating decorations */
+  .deco { position: fixed; pointer-events: none; z-index: 0; image-rendering: pixelated; }
+  .float { animation: float 6s ease-in-out infinite; }
+  .twinkle { animation: twinkle 2.4s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-8px); } }
+  .fly { animation: fly 9s ease-in-out infinite; }
+  .ride { animation: ride 14s linear infinite; }
+  @keyframes fly { 50% { transform: translate(-24px, -10px); } }
+  @keyframes ride { from { transform: translateX(0); } to { transform: translateX(60vw); } }
+  @keyframes twinkle { 50% { opacity: .35; transform: scale(.85); } }
+  @media (prefers-reduced-motion: reduce) { .float, .twinkle, .dot, .fly, .ride { animation: none !important; } }
+
+  /* the window */
+  .window {
+    position: relative; z-index: 1;
+    width: min(560px, 100%);
+    background: var(--pink-pale);
+    border: 4px solid var(--ink);
+    border-radius: 16px;
+    box-shadow: 8px 8px 0 var(--shadow);
+    padding: 12px 14px 14px;
+  }
+  .titlebar { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; }
+  .titlebar h1 { margin: 0; font-size: 28px; font-weight: 600; color: var(--pink-deep); letter-spacing: .5px; flex: 1; }
+  .winbtns { display: flex; gap: 6px; }
+  .winbtns span {
+    width: 30px; height: 30px; display: grid; place-items: center;
+    background: var(--pink-paler); border: 3px solid var(--ink); border-radius: 6px;
+    box-shadow: inset -3px -3px 0 #f2b9d2; font-size: 16px; font-weight: 600; line-height: 1;
+  }
+  .winbtns span:nth-child(2) { background: #fff3b8; box-shadow: inset -3px -3px 0 #f2d77a; }
+
+  .statusbar {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--pink-paler); border: 3px solid var(--ink); border-radius: 10px;
+    padding: 6px 10px; font-size: 16px; margin-bottom: 10px;
+  }
+  .statusbar .icons { display: flex; gap: 4px; }
+  .online-dot { display: inline-block; width: 8px; height: 8px; background: #6ccf7f; border: 2px solid var(--ink); margin: 0 4px 1px 2px; vertical-align: middle; }
+  .online-dot.off { background: #c9c3cf; }
+
+  .bunting { margin: -6px 2px 2px; line-height: 0; }
+
+  /* chat area */
+  .chat {
+    position: relative;
+    height: clamp(380px, 62vh, 640px);
+    overflow-y: auto;
+    border: 3px solid var(--ink); border-radius: 12px;
+    background-color: var(--lilac);
+    background-image: repeating-conic-gradient(rgba(255,214,231,.55) 0 25%, transparent 0 50%);
+    background-size: 64px 64px;
+    padding: 18px 12px;
+    scroll-behavior: smooth;
+  }
+  .chat::-webkit-scrollbar { width: 10px; }
+  .chat::-webkit-scrollbar-thumb { background: var(--pink); border: 2px solid var(--ink); border-radius: 6px; }
+
+  .msg { display: flex; gap: 8px; align-items: flex-end; margin: 0 0 18px; }
+  .msg.user { flex-direction: row-reverse; }
+  .avatar { flex: 0 0 auto; width: 52px; height: 52px; display: grid; place-items: center; image-rendering: pixelated; }
+  .msg.bot .avatar {            /* the assistant's star sits on a blue badge, a nod to Europe */
+    background: #8fa8ff; border: 3px solid var(--ink); border-radius: 50%;
+    box-shadow: inset 0 0 0 3px #b9c8ff, 0 3px 0 rgba(91,58,85,.25);
+  }
+  .bubble {
+    position: relative; max-width: 78%;
+    background: var(--pink); color: #fff;
+    border: 3px solid var(--ink); border-radius: 16px;
+    padding: 10px 14px; font-size: 17px; line-height: 1.35;
+    box-shadow: 0 4px 0 rgba(91,58,85,.25);
+    overflow-wrap: anywhere;
+  }
+  .bubble::before {                       /* pixel tail */
+    content: ""; position: absolute; bottom: 10px; left: -11px;
+    width: 10px; height: 10px; background: inherit;
+    border-left: 3px solid var(--ink); border-bottom: 3px solid var(--ink);
+    transform: skewY(-35deg);
+  }
+  .msg.user .bubble { background: #fff5fa; color: var(--pink-deep); }
+  .msg.user .bubble::before { left: auto; right: -11px; border-left: 0; border-right: 3px solid var(--ink); transform: skewY(35deg); }
+  .bubble.notfound { background: #f1eaff; color: var(--ink); }
+  .bubble.error { background: #fff0d6; color: var(--ink); }
+
+  .sources { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip {
+    font-family: inherit; font-size: 13px; color: var(--ink);
+    background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 2px 8px;
+  }
+  details { margin-top: 8px; font-size: 13px; }
+  details summary { cursor: pointer; opacity: .9; }
+  details ul { margin: 6px 0 0; padding-left: 18px; }
+
+  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px 60px; }
+  .suggestions button {
+    font-family: inherit; font-size: 14px; color: var(--ink); cursor: pointer;
+    background: var(--cream); border: 2px solid var(--ink); border-radius: 10px; padding: 5px 10px;
+    box-shadow: 0 3px 0 var(--ink); transition: transform .08s;
+  }
+  .suggestions button:hover { background: #fff0f7; }
+  .suggestions button:active { transform: translateY(3px); box-shadow: none; }
+
+  .typing { display: flex; gap: 6px; padding: 4px 2px; }
+  .dot { width: 9px; height: 9px; background: #fff; border: 2px solid var(--ink); animation: hop 1s infinite; }
+  .dot:nth-child(2) { animation-delay: .15s; } .dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes hop { 30% { transform: translateY(-6px); } 60% { transform: none; } }
+
+  /* input row */
+  .composer { display: flex; gap: 8px; margin-top: 12px; align-items: stretch; }
+  .field {
+    flex: 1; min-width: 0; display: flex; align-items: center;
+    background: var(--cream); border: 3px solid var(--ink); border-radius: 10px;
+    box-shadow: inset 3px 3px 0 #ead9e4;
+  }
+  .field input {
+    flex: 1; min-width: 0; border: 0; background: transparent; outline: none;
+    font-family: inherit; font-size: 18px; color: var(--ink); padding: 10px 12px;
+  }
+  .field input::placeholder { color: #a99aa6; }
+  .field .deco-box { padding: 0 8px; border-left: 3px solid var(--ink); align-self: stretch; display: flex; align-items: center; gap: 2px; background: #ffe9f3; border-radius: 0 7px 7px 0; }
+  .send {
+    font-family: inherit; font-size: 20px; font-weight: 600; color: #fff; cursor: pointer;
+    background: #ff7fb3; border: 3px solid var(--ink); border-radius: 10px; padding: 0 18px;
+    box-shadow: 0 4px 0 var(--ink); transition: transform .08s;
+  }
+  .send:hover { background: #ff6aa6; }
+  .send:active { transform: translateY(4px); box-shadow: none; }
+  .send:disabled { background: #e6b5cc; cursor: wait; }
+  .field:focus-within { outline: 3px dashed var(--pink-deep); outline-offset: 2px; }
+
+  footer { position: relative; z-index: 1; margin-top: 22px; text-align: center; font-size: 14px; max-width: 560px; line-height: 1.5; }
+  footer a { color: var(--pink-deep); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  @media (max-width: 480px) {
+    body { padding: 20px 12px; }
+    .titlebar h1 { font-size: 22px; }
+    .winbtns span { width: 24px; height: 24px; font-size: 13px; }
+    .avatar { width: 40px; height: 40px; }
+    .bubble { max-width: 82%; font-size: 16px; }
+    .suggestions { margin-left: 0; }
+    .send { padding: 0 12px; font-size: 18px; }
+    .deco.hide-sm { display: none; }
+    .field .deco-box { display: none; }
+    .statusbar { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="decorations" aria-hidden="true"></div>
+
+<main class="window" aria-label="Erasmus+ assistant chat">
+  <div class="titlebar">
+    <span id="title-icon" aria-hidden="true"></span>
+    <h1>erasmus.exe</h1>
+    <div class="winbtns" aria-hidden="true"><span>_</span><span>▫</span><span>×</span></div>
+  </div>
+
+  <div class="statusbar">
+    <span class="icons" id="status-icons" aria-hidden="true"></span>
+    <span>Contact: Erasmus+ helper <span class="online-dot" id="online-dot"></span><span id="status-text">connecting…</span></span>
+  </div>
+
+  <div class="bunting" id="bunting" aria-hidden="true"></div>
+  <section class="chat" id="chat" aria-live="polite"></section>
+
+  <form class="composer" id="composer" autocomplete="off">
+    <label class="sr-only" for="question">Your question</label>
+    <div class="field">
+      <input id="question" maxlength="500" placeholder="type your question…" required>
+      <span class="deco-box" id="field-deco" aria-hidden="true"></span>
+    </div>
+    <button class="send" id="send" type="submit">Send</button>
+  </form>
+</main>
+
+<footer>
+  Answers come from the <b>Erasmus+ Programme Guide 2027</b> and <b>Istanbul Gelişim University</b>'s traineeship documents,
+  with the pages they used. A student project, not affiliated with the European Commission: always check with your Erasmus office.<br>
+  <a href="https://github.com/rabiaozers/erasmus-rag" target="_blank" rel="noopener">code, evaluation &amp; results on GitHub</a>
+</footer>
+
+<script>
+/* ---------- tiny pixel-art sprites (original drawings, one character = one pixel) ---------- */
+const PALETTE = {
+  O: "#5b3a55", Y: "#ffd84d", y: "#f2b33d", W: "#ffffff", P: "#ff9ec7", p: "#ff7fb3", R: "#ff5f7e",
+  G: "#5cc46a", K: "#3a2433", S: "#ffe1cf", D: "#7a5cc0", B: "#d9e6ff", L: "#c8b6ff",
+  U: "#7f9cf5", C: "#fff4e0", c: "#e8d8bd", E: "#b98b6c"
+};
+const SPRITES = {
+  star: [   // the assistant: a little star with a face
+    ".....OO.....",
+    "....OYYO....",
+    "....OYYO....",
+    "OOOOOYYOOOOO",
+    "OYYYYYYYYYYO",
+    ".OYYKYYKYYO.",
+    "..OPYYYYPO..",
+    "..OYYyyYYO..",
+    ".OYYYOOYYYO.",
+    ".OYYO..OYYO.",
+    "OYYO....OYYO",
+    "OOO......OOO"
+  ],
+  student: [ // the user: a student with a graduation cap
+    ".....DD.....",
+    "...DDDDDD...",
+    ".DDDDDDDDDD.",
+    "...DDDDDDY..",
+    "..OSSSSSSOY.",
+    ".OSSSSSSSSOY",
+    ".OSKSSSSKSO.",
+    ".OSPSSSSPSO.",
+    ".OSSSOOSSSO.",
+    "..OSSSSSSO..",
+    "...OOOOOO..."
+  ],
+  heart: [
+    ".OO...OO.",
+    "OPPO.OPPO",
+    "OPWPOPPPO",
+    "OPPPPPPPO",
+    ".OPPPPPO.",
+    "..OPPPO..",
+    "...OPO...",
+    "....O...."
+  ],
+  sparkle: [
+    "...Y...",
+    "...Y...",
+    "..YWY..",
+    "YYWWWYY",
+    "..YWY..",
+    "...Y...",
+    "...Y..."
+  ],
+  sparklePink: [
+    "...P...",
+    "..PWP..",
+    ".PWWWP.",
+    "..PWP..",
+    "...P..."
+  ],
+  cloud: [
+    "....OOOO........",
+    "...OWWWWO.OOO...",
+    "..OWWWWWWOWWWO..",
+    ".OWWWWWWWWWWWWO.",
+    "OWWWWWWWWWWWWWWO",
+    "OWWWWWWWWWWBBBWO",
+    ".OOOOOOOOOOOOOO."
+  ],
+  strawberry: [
+    "...GGG...",
+    "..GGGGG..",
+    ".ORRRRRO.",
+    "ORRWRRRRO",
+    "ORRRRWRRO",
+    "ORWRRRRRO",
+    ".ORRRWRO.",
+    "..ORRRO..",
+    "...OOO..."
+  ],
+  daisy: [
+    "...WWW...",
+    ".WWWWWWW.",
+    ".WWYYYWW.",
+    "WWWYyYWWW",
+    ".WWYYYWW.",
+    ".WWWWWWW.",
+    "...WWW..."
+  ],
+  mushroom: [
+    "...OOOO...",
+    "..ORRWRO..",
+    ".ORWRRRRO.",
+    "ORRRRRWRRO",
+    "OOOOOOOOOO",
+    "...OWWO...",
+    "...OWWO...",
+    "...OOOO..."
+  ],
+  smiley: [
+    ".OOOOO.",
+    "OYYYYYO",
+    "OYKYKYO",
+    "OYYYYYO",
+    "OYKKKYO",
+    "OYYYYYO",
+    ".OOOOO."
+  ],
+  passport: [
+    "OOOOOOO",
+    "OUUUUUO",
+    "OUUYUUO",
+    "OUYYYUO",
+    "OUUYUUO",
+    "OUUUUUO",
+    "OUYYYUO",
+    "OUUUUUO",
+    "OOOOOOO"
+  ],
+  pisa: [     // the Leaning Tower of Pisa, where this project started
+    "....OOOO...",
+    "....OCCO...",
+    "...OOOOOO..",
+    "...OCcCcO..",
+    "...OOOOOO..",
+    "..OCcCcO...",
+    "..OOOOOO...",
+    "..OCcCcO...",
+    "..OOOOOO...",
+    ".OCcCcO....",
+    ".OOOOOO....",
+    ".OCcCcO....",
+    ".OOOOOO....",
+    "OCcCcO.....",
+    "OCcCcO.....",
+    "OOOOOO....."
+  ],
+  eiffel: [
+    ".....O.....",
+    ".....E.....",
+    "....OEO....",
+    "....OEO....",
+    "...OEEEO...",
+    "...OOOOO...",
+    "...OE.EO...",
+    "..OEE.EEO..",
+    "..OOOOOOO..",
+    "..OE...EO..",
+    ".OEE...EEO.",
+    ".OE.....EO.",
+    "OEOOOOOOOEO",
+    "OE.......EO",
+    "OE.......EO",
+    "OO.......OO"
+  ],
+  tulip: [
+    ".R.R.R.",
+    ".RRRRR.",
+    ".RRRRR.",
+    "..RRR..",
+    "...G...",
+    "GG.G...",
+    ".GGG...",
+    "...G.GG",
+    "...GGG.",
+    "...G..."
+  ],
+  plane: [
+    ".O............",
+    ".OO...........",
+    ".OUO...OOOO...",
+    "OOOOOOOUUUUOO.",
+    "OUUWUWUWUWUUUO",
+    ".OOOOOOOOUUOO.",
+    "......OUUO....",
+    "......OOO....."
+  ],
+  train: [
+    "..OOOOOOOOOOO...",
+    ".OUUUUUUUUUUUO..",
+    "OUWWUWWUWWUWWUO.",
+    "OUWWUWWUWWUWWUUO",
+    "OUUUUUUUUUUUUUUO",
+    "OPPPPPPPPPPPPPPO",
+    "OOOOOOOOOOOOOOOO",
+    ".OKO..OKO..OKO..",
+    "..O....O....O..."
+  ],
+  suitcase: [
+    "....OOOO....",
+    "....O..O....",
+    "OOOOOOOOOOOO",
+    "OLLLLLLLLLLO",
+    "OLYYLLLUULLO",
+    "OLYYLLLUULLO",
+    "OLLLLRRLLLLO",
+    "OLLLLRRLLLLO",
+    "OOOOOOOOOOOO",
+    ".OO......OO."
+  ]
+};
+
+function sprite(name, px, cls = "") {
+  const rows = SPRITES[name];
+  const w = rows[0].length, h = rows.length;
+  let rects = "";
+  rows.forEach((row, y) => [...row].forEach((c, x) => {
+    if (PALETTE[c]) rects += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${PALETTE[c]}"/>`;
+  }));
+  return `<svg class="${cls}" width="${w * px}" height="${h * px}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+}
+
+/* ---------- decorations ---------- */
+document.getElementById("title-icon").innerHTML = sprite("sparklePink", 4) + sprite("heart", 3);
+document.getElementById("status-icons").innerHTML = sprite("passport", 3) + sprite("heart", 3) + sprite("sparkle", 3);
+document.getElementById("field-deco").innerHTML = sprite("heart", 3) + sprite("sparkle", 3);
+
+const DECOS = [
+  ["cloud", 5, "6%", "3%", "float"], ["cloud", 4, "70%", "88%", "float hide-sm"], ["cloud", 4, "40%", "-2%", "float hide-sm"],
+  ["plane", 4, "14%", "80%", "fly"], ["train", 4, "93%", "2%", "ride hide-sm"],
+  ["pisa", 5, "58%", "3%", "float hide-sm"], ["eiffel", 5, "56%", "90%", "float hide-sm"],
+  ["suitcase", 4, "84%", "86%", "float"], ["tulip", 4, "30%", "93%", "twinkle hide-sm"], ["tulip", 4, "80%", "12%", "twinkle hide-sm"],
+  ["heart", 4, "4%", "62%", "float"], ["strawberry", 4, "34%", "4%", "float hide-sm"], ["daisy", 4, "88%", "50%", "twinkle hide-sm"],
+  ["sparkle", 4, "18%", "12%", "twinkle"], ["sparkle", 3, "46%", "93%", "twinkle"], ["sparkle", 4, "12%", "85%", "twinkle hide-sm"],
+  ["sparklePink", 4, "26%", "6%", "twinkle hide-sm"], ["sparklePink", 4, "74%", "95%", "twinkle"]
+];
+document.getElementById("decorations").innerHTML = DECOS.map(([name, px, top, left, cls], i) =>
+  `<div class="deco ${cls}" style="top:${top};left:${left};animation-delay:${(i % 5) * .5}s">${sprite(name, px)}</div>`).join("");
+
+/* ---------- bunting: pennants in the colours of a few Erasmus+ countries ---------- */
+const FLAGS = [   // [stripes, direction]  v = vertical stripes, h = horizontal
+  [["#4f9a63", "#ffffff", "#e0566a"], "v"],   // Italy
+  [["#4e6fc4", "#ffffff", "#e0566a"], "v"],   // France
+  [["#3a2433", "#e0566a", "#ffd04d"], "h"],   // Germany
+  [["#e0566a", "#ffd04d", "#e0566a"], "h"],   // Spain
+  [["#e0566a", "#ffffff", "#4e6fc4"], "h"],   // Netherlands
+  [["#4f9a63", "#ffffff", "#f39a4a"], "v"],   // Ireland
+  [["#ffffff", "#e0566a"], "h"],              // Poland
+  [["#3a2433", "#ffd04d", "#e0566a"], "v"],   // Belgium
+  [["#e0566a"], "tr"],                        // Türkiye
+  [["#4e6fc4", "#ffffff", "#4e6fc4", "#ffffff", "#4e6fc4"], "h"]  // Greece-like stripes
+];
+function bunting() {
+  const n = FLAGS.length, W = 560, H = 46, step = W / n, pw = step * .78;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" width="100%" height="${H}">`;
+  svg += `<path d="M0 6 Q ${W / 2} 22 ${W} 6" fill="none" stroke="#5b3a55" stroke-width="2.5"/>`;
+  FLAGS.forEach(([colors, dir], i) => {
+    const x = i * step + (step - pw) / 2, cx = x + pw / 2;
+    const sag = 6 + 16 * (1 - Math.pow((cx - W / 2) / (W / 2), 2)) * .5;      // follow the string's curve
+    const pts = `${x},${sag} ${x + pw},${sag} ${cx},${sag + 30}`;
+    svg += `<clipPath id="pen${i}"><polygon points="${pts}"/></clipPath><g clip-path="url(#pen${i})">`;
+    if (dir === "tr") {
+      svg += `<rect x="${x}" y="${sag}" width="${pw}" height="30" fill="${colors[0]}"/>
+              <circle cx="${cx - 2}" cy="${sag + 9}" r="5.5" fill="#fff"/><circle cx="${cx}" cy="${sag + 9}" r="4.4" fill="${colors[0]}"/>
+              <circle cx="${cx + 5}" cy="${sag + 9}" r="1.6" fill="#fff"/>`;
+    } else {
+      colors.forEach((col, k) => {
+        svg += dir === "v"
+          ? `<rect x="${x + k * pw / colors.length}" y="${sag}" width="${pw / colors.length + .5}" height="30" fill="${col}"/>`
+          : `<rect x="${x}" y="${sag + k * 22 / colors.length}" width="${pw}" height="${22 / colors.length + .5}" fill="${col}"/>`;
+      });
+    }
+    svg += `</g><polygon points="${pts}" fill="none" stroke="#5b3a55" stroke-width="2"/>`;
+  });
+  return svg + "</svg>";
+}
+document.getElementById("bunting").innerHTML = bunting();
+
+/* ---------- chat ---------- */
+const chat = document.getElementById("chat");
+const form = document.getElementById("composer");
+const input = document.getElementById("question");
+const sendBtn = document.getElementById("send");
+
+const SOURCE_LABELS = {
+  "programme-guide-2027": (p) => `EU Guide · p.${p}`,
+  "igu-steps": (p) => `IGU steps · p.${p}`,
+  "igu-slides": (p) => `IGU slides · ${p}`
+};
+const EXAMPLES = [
+  "How much monthly grant does IGU pay for a traineeship in Italy?",
+  "How long can a Youth Exchange last?",
+  "Is there extra money for travel by train instead of plane?",
+  "Which documents do I need after returning to get the last 20%?",
+  "Can I have a relationship during Erasmus?"
+];
+
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const label = (s) => (SOURCE_LABELS[s.source] || ((p) => `${s.source} · p.${p}`))(s.page);
+
+function addMessage(who, html, extraClass = "") {
+  const msg = document.createElement("div");
+  msg.className = `msg ${who}`;
+  msg.innerHTML = `<div class="avatar">${(who === "user" ? sprite("student", 4) : sprite("star", 3))}</div>
+                   <div class="bubble ${extraClass}">${html}</div>`;
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+  return msg;
+}
+
+function showSuggestions() {
+  const box = document.createElement("div");
+  box.className = "suggestions";
+  EXAMPLES.forEach((q) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = q;
+    b.onclick = () => { box.remove(); ask(q); };
+    box.appendChild(b);
+  });
+  chat.appendChild(box);
+}
+
+async function ask(question) {
+  addMessage("user", escapeHtml(question));
+  const typing = addMessage("bot", `<div class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`);
+  sendBtn.disabled = true;
+  try {
+    const res = await fetch("ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) });
+    if (!res.ok) throw new Error(res.status === 422 ? "Please write a slightly longer question." : `server said ${res.status}`);
+    const data = await res.json();
+    typing.remove();
+    if (data.found) {
+      const chips = data.sources.map((s) => `<span class="chip">${escapeHtml(label(s))}</span>`).join("");
+      const found = data.retrieved.map((r) => `<li>${escapeHtml(label(r))} <small>(score ${r.score})</small></li>`).join("");
+      addMessage("bot", `${escapeHtml(data.answer)}
+        ${chips ? `<div class="sources">${chips}</div>` : ""}
+        <details><summary>what the search found</summary><ul>${found}</ul></details>`);
+    } else {
+      addMessage("bot", `${escapeHtml(data.answer)}<br><small>(I only answer from the documents, so I won't guess ♡)</small>`, "notfound");
+    }
+  } catch (err) {
+    typing.remove();
+    addMessage("bot", `oh no, something went wrong (${escapeHtml(err.message)}). Try again in a minute?`, "error");
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = input.value.trim();
+  if (!q || sendBtn.disabled) return;
+  input.value = "";
+  document.querySelector(".suggestions")?.remove();
+  ask(q);
+});
+
+/* ---------- start ---------- */
+addMessage("bot", "ciao! bonjour! merhaba! ✧ ask me anything about Erasmus+. I read the 466-page EU Programme Guide and IGU's traineeship documents, and I tell you which pages I used.");
+showSuggestions();
+
+fetch("health").then((r) => r.json()).then((h) => {
+  document.getElementById("status-text").textContent = "Online";
+  document.getElementById("status-text").title = `${h.chunks.toLocaleString("en")} chunks indexed`;
+}).catch(() => {
+  document.getElementById("online-dot").classList.add("off");
+  document.getElementById("status-text").textContent = "Offline";
+});
+</script>
+</body>
+</html>

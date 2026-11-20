@@ -9,6 +9,7 @@ from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
 RRF_K = 60          # the constant in 1 / (RRF_K + rank); the usual default
 CANDIDATES = 20     # how many results each search contributes to the fusion
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"                     # 384 numbers per chunk; reads at most 256 tokens
 RERANKER_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"   # small English cross-encoder, fine on CPU
 
 

@@ -5,8 +5,9 @@ from sentence_transformers import SentenceTransformer
 
 from chunking import SOURCES, load_source, split_pages
 from db import connect, insert_chunks, reset
+from retrieval import EMBEDDING_MODEL
 
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = EMBEDDING_MODEL
 
 
 if __name__ == "__main__":
