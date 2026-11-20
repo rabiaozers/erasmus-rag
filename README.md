@@ -1,6 +1,6 @@
 # Erasmus+ Assistant (RAG)
 
-Ask questions about the Erasmus+ programme (studies, traineeships, youth exchanges, staff mobility, partnerships, grants) and get short answers **with page citations**. It answers from the whole EU Programme Guide, plus my university's own traineeship documents:
+Ask questions about the Erasmus+ programme (studies, traineeships, youth exchanges, staff mobility, partnerships, grants), in English or Turkish, even in a few words ("visa help?"), and get short answers **with page citations**. It answers from the whole EU Programme Guide, plus my university's own traineeship documents. When the documents do not cover a question, it says so and gives a short general tip, clearly labelled as not coming from the documents.
 
 | Source | What it covers | Size |
 |---|---|---|
@@ -16,13 +16,15 @@ Locally everything runs on a laptop: PostgreSQL + pgvector in Docker and a 3B-pa
 
 ```mermaid
 flowchart LR
-    Q[Question] --> E[Embedding search<br/>pgvector]
-    Q --> B[BM25 keyword search]
+    Q[Question<br/>EN or TR] --> W[LLM rewrites it as a<br/>full English search query]
+    W --> E[Embedding search<br/>pgvector]
+    W --> B[BM25 keyword search]
     E --> R[RRF fusion<br/>20 candidates]
     B --> R
     R --> X[Cross-encoder reranker<br/>top 5]
-    X --> L[LLM qwen2.5:3b via Ollama<br/>structured JSON]
-    L --> A[Answer + cited pages<br/>or 'not found']
+    X --> L[LLM, structured JSON<br/>answer + citations + found]
+    L -->|found| A[Answer + cited pages]
+    L -->|not found| G[Labelled general tip<br/>'not from the documents']
 ```
 
 ## Example
@@ -35,12 +37,20 @@ POST /ask  {"question": "How much monthly grant does IGU pay for a traineeship i
 
 POST /ask  {"question": "Can I have a relationship during Erasmus?"}
 
-{"found": false, "answer": "I could not find this in the Erasmus+ Programme Guide or the IGU documents.", "sources": []}
+{"found": false, "answer_type": "general",
+ "answer": "Erasmus+ has no rules about your personal life...", "sources": []}
+   -> shown in a yellow bubble: "not from the documents, please check with your Erasmus office"
+
+POST /ask  {"question": "vize yardımı?", "lang": "tr"}
+
+{"found": true, "search_query": "What help do Erasmus+ participants get with their visa application?",
+ "answer": "Vize başvurusu öğrencinin sorumluluğundadır; İGÜ ofisi ... sponsorluk mektubu hazırlar.",
+ "sources": [{"source": "igu-steps", "page": 3}], ...}
 ```
 
 ## How I worked
 
-**1. Evaluation set first.** Before building anything, I wrote 34 questions (most of them things I wanted to know before my own traineeship) and looked up the correct page for each in the source PDFs ([eval/questions.csv](eval/questions.csv)). 31 have an answer; 3 are not covered by the documents and the system should say so.
+**1. Evaluation set first.** Before building anything, I wrote 34 questions (most of them things I wanted to know before my own traineeship) and looked up the correct page for each in the source PDFs ([eval/questions.csv](eval/questions.csv)). 31 have an answer; 3 are not covered by the documents and the system should say so. Later I added 7 short questions the way people really type them ("can i go to italy") and 5 Turkish questions, for 46 in total. The tables in steps 2 and 3 use the first 34; step 4 uses all 46.
 
 **2. Retrieval: measured, diagnosed, improved.** `recall@k` = the share of questions where a correct page is among the top-k chunks.
 
@@ -85,6 +95,12 @@ Two fixes came from reading the answers, not from the metrics:
 - Sometimes the flag and the text disagreed (`found: true` with the answer "no answer found"). I moved `found` to the end of the schema, so the model writes the answer before deciding, and the code now trusts the text when it says "not found".
 - When the model said "not found" it sometimes still wrote a misleading explanation, so the code replaces the text with a fixed message.
 
+**4. Real users type short questions, sometimes in Turkish.** Testing the live demo, "can i go to italy" got "not found", although Italy is listed on page 80. A three-word question is a poor search query. So before searching, the LLM rewrites the question as a full English query ("Is Italy an eligible destination country for an Erasmus+ mobility?"); both versions are searched and fused with RRF, and the reranker reads the rewritten one. The same step translates Turkish questions, so Turkish works without a second model or index, and the answer is written in the language of the question.
+
+<!-- RESULTS_REWRITE -->
+
+**5. Not found: say it, then help.** If the documents do not answer, the system first says so and then gives a 2-3 sentence general tip in a separate, clearly labelled yellow bubble. The tip may not invent amounts, dates or rules; for those it sends the student to their Erasmus office. The system can guess, but it always says when it is guessing.
+
 ## Known weaknesses
 
 - **Retrieval caps everything.** recall@5 is 0.71, so for about 9 of 31 questions the right page never reaches the LLM. Questions whose answer is spread over several pages (how the grant is calculated) or sits in a table (travel distance bands) are the hardest.
@@ -128,7 +144,7 @@ docker compose up --build
 | `retrieval.py` | BM25, Reciprocal Rank Fusion, reranker |
 | `rag.py` | prompt, Ollama call with a JSON schema, citations |
 | `app.py` | FastAPI: chat page at `/`, `POST /ask`, `GET /health` |
-| `web/index.html` | the chat page: HTML, CSS and JavaScript, with pixel-art sprites drawn in code |
+| `web/index.html` | the chat page: HTML, CSS and JavaScript, English and Turkish, with pixel-art sprites (landmarks, flags) drawn in code |
 | `memory_store.py`, `export_index.py` | the demo keeps chunks and embeddings in memory instead of PostgreSQL |
 | `demo/app.py` | the public demo on Streamlit Community Cloud: the same chat page runs as a Streamlit component, Python answers with the same retrieval code, the LLM runs on Groq |
 | `evaluate.py`, `eval_answers.py`, `metrics.py` | retrieval and answer evaluation |
