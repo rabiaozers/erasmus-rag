@@ -98,7 +98,7 @@
     background-color: var(--lilac);
     background-image: repeating-conic-gradient(rgba(255,214,231,.55) 0 25%, transparent 0 50%);
     background-size: 64px 64px;
-    padding: 18px 12px;
+    padding: 18px 12px 84px;     /* room for the landmark skyline at the bottom */
     scroll-behavior: smooth;
   }
   html.in-streamlit .chat { height: 560px; }
@@ -429,6 +429,60 @@ const SPRITES = {
     ".OKO..OKO..OKO..",
     "..O....O....O..."
   ],
+  colosseum: [   // Rome
+    "...OOOOOOOOOOOO...",
+    "..OCCCCCCCCCCCCO..",
+    ".OCLCLCLCLCLCLCCO.",
+    ".OCLCLCLCLCLCLCCO.",
+    ".OccccccccccccccO.",
+    "OCLCLCLCLCLCLCLCCO",
+    "OCLCLCLCLCLCLCLCCO",
+    "OccccccccccccccccO",
+    "OCLCLCLCLCLCLCLCCO",
+    "OOOOOOOOOOOOOOOOOO"
+  ],
+  gate: [        // Brandenburg Gate, Berlin
+    ".....OOOOO.....",
+    "....OCCCCCO....",
+    "OOOOOOOOOOOOOOO",
+    "OCCCCCCCCCCCCCO",
+    "OOOOOOOOOOOOOOO",
+    "OCO.OCO.OCO.OCO",
+    "OCO.OCO.OCO.OCO",
+    "OCO.OCO.OCO.OCO",
+    "OCO.OCO.OCO.OCO",
+    "OOOOOOOOOOOOOOO"
+  ],
+  parthenon: [   // Athens
+    "......OOO......",
+    "....OOCCCOO....",
+    "..OOCCCCCCCOO..",
+    "OOOOOOOOOOOOOOO",
+    "OCO.OCO.OCO.OCO",
+    "OCO.OCO.OCO.OCO",
+    "OCO.OCO.OCO.OCO",
+    "OOOOOOOOOOOOOOO",
+    "OcccccccccccccO",
+    "OOOOOOOOOOOOOOO"
+  ],
+  galata: [      // Galata Tower, Istanbul
+    "....O....",
+    "....D....",
+    "...ODO...",
+    "...DDD...",
+    "..ODDDO..",
+    "..DDDDD..",
+    ".ODDDDDO.",
+    ".OOOOOOO.",
+    ".OCLCLCO.",
+    ".OCCCCCO.",
+    ".OCLCLCO.",
+    ".OCCCCCO.",
+    ".OCLCLCO.",
+    ".OCCCCCO.",
+    "OOCCCCCOO",
+    "OOOOOOOOO"
+  ],
   suitcase: [
     "....OOOO....",
     "....O..O....",
@@ -508,6 +562,31 @@ function bunting() {
   return svg + "</svg>";
 }
 document.getElementById("bunting").innerHTML = bunting();
+
+/* ---------- chat theme: a pixel skyline of European landmarks at the bottom of the chat ---------- */
+function skyline() {
+  const px = 3, gap = 18;
+  const names = ["galata", "colosseum", "eiffel", "parthenon", "pisa", "gate"];
+  const heights = names.map((n) => SPRITES[n].length * px);
+  const H = Math.max(...heights) + 6;
+  let x = 10, body = "";
+  names.forEach((name, i) => {
+    const rows = SPRITES[name], y0 = H - 4 - rows.length * px;
+    rows.forEach((row, y) => [...row].forEach((c, cx) => {
+      if (PALETTE[c]) body += `<rect x="${x + cx * px}" y="${y0 + y * px}" width="${px}" height="${px}" fill="${PALETTE[c]}"/>`;
+    }));
+    x += rows[0].length * px + gap;
+  });
+  const W = x - gap + 10;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" shape-rendering="crispEdges">` +
+         `<g opacity=".5">${body}<rect x="0" y="${H - 4}" width="${W}" height="3" fill="#5b3a55"/></g></svg>`;
+}
+const chatBox = document.getElementById("chat");
+chatBox.style.backgroundImage =
+  `url("data:image/svg+xml,${encodeURIComponent(skyline())}"), repeating-conic-gradient(rgba(255,214,231,.55) 0 25%, transparent 0 50%)`;
+chatBox.style.backgroundSize = "min(100%, 520px) auto, 64px 64px";
+chatBox.style.backgroundPosition = "center bottom 6px, 0 0";
+chatBox.style.backgroundRepeat = "no-repeat, repeat";
 
 /* ---------- chat ---------- */
 const chat = document.getElementById("chat");
