@@ -8,7 +8,7 @@ Ask questions about the Erasmus+ programme (studies, traineeships, youth exchang
 | Istanbul Gelişim University (IGU) step-by-step guide | what the student has to do before, during and after the traineeship | 9 pages |
 | IGU orientation slides | grant amounts, documents, deadlines (slides are images, read with OCR) | 20 slides |
 
-Everything runs locally: PostgreSQL + pgvector in Docker, and a 3B-parameter LLM with Ollama on a 4 GB laptop GPU.
+Locally everything runs on a laptop: PostgreSQL + pgvector in Docker and a 3B-parameter LLM with Ollama on a 4 GB GPU. The public demo keeps the chunks in memory and uses a 120B model through Groq's free API.
 
 ```mermaid
 flowchart LR
@@ -66,14 +66,16 @@ What I learned along the way:
 
 **3. Generation.** The LLM gets the top 5 chunks as numbered passages and must return JSON with a Pydantic schema (`answer`, `citations`, `found`); citation numbers are mapped back to source and page in code. Results on all 34 questions ([eval/](eval/)):
 
-| | llama3.2:3b | qwen2.5:3b (chosen) |
-|---|---|---|
-| says "not found" for the 3 uncovered questions | 3/3 | 3/3 |
-| cites a correct page (31 answerable) | 15/31 | 16/31 |
-| all key numbers of the expected answer present | 6/20 | 7/20 |
-| time per question (GTX 1650) | 9.6 s | 8.7 s |
+| | llama3.2:3b (local) | qwen2.5:3b (local, chosen) | gpt-oss-120b (Groq API) |
+|---|---|---|---|
+| says "not found" for the 3 uncovered questions | 3/3 | 3/3 | 3/3 |
+| cites a correct page (31 answerable) | 15/31 | 16/31 | 15/31 |
+| all key numbers of the expected answer present | 6/20 | 7/20 | 8/20 |
+| time per answer | 9.6 s (GTX 1650) | 8.7 s (GTX 1650) | ~2.5 s |
 
-The two models score almost the same, which says the main limit is retrieval, not the LLM (see below). I chose Qwen because it was slightly better and faster, and gave the same answers when run twice with temperature 0. Both models made the same mistake on the application deadline: the right page (18 February) was not retrieved, so they read another programme's deadline (11 February) from the passages they had.
+**A 40x larger model did not cite the right page more often.** This was the most useful result of the project: the limit is retrieval, not the LLM. With recall@5 = 0.71, about 9 of 31 questions never get the right page, and on those every model either says "not found" or answers from a wrong passage. For example, all three models answered the application-deadline question with another programme's date (11 instead of 18 February), and the grant question with the Erasmus Mundus scholarship (1,400 EUR), because those were the passages they were given. The 120B model writes more complete answers (it lists all four return documents, and it even corrected an extraction typo, "Zraat" to "Ziraat"), which the strict key-number check only partly rewards.
+
+For the local setup I kept Qwen: same quality as Llama, a bit faster, and identical answers when run twice at temperature 0. The public demo uses gpt-oss-120b through Groq's free tier, because the free demo server has no GPU.
 
 Two fixes came from reading the answers, not from the metrics:
 - Sometimes the flag and the text disagreed (`found: true` with the answer "no answer found"). I moved `found` to the end of the schema, so the model writes the answer before deciding, and the code now trusts the text when it says "not found".

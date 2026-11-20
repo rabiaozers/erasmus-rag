@@ -6,7 +6,6 @@ import snowballstemmer
 from rank_bm25 import BM25Okapi
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
-from db import all_chunks, keyword_search, search
 
 RRF_K = 60          # the constant in 1 / (RRF_K + rank); the usual default
 CANDIDATES = 20     # how many results each search contributes to the fusion
@@ -41,8 +40,8 @@ def tokenize(text):
 class BM25Index:
     """Keyword search with IDF: rare words like 'visa' count more than common ones like 'erasmus'."""
 
-    def __init__(self, conn):
-        self.rows = all_chunks(conn)                                   # (source, page, content)
+    def __init__(self, store):
+        self.rows = store.all_chunks()                                 # (source, page, content)
         self.bm25 = BM25Okapi([tokenize(row[2]) for row in self.rows])  # IDF is computed here, like fit()
 
     def search(self, question, k=20):
@@ -60,18 +59,19 @@ def rerank(reranker, question, rows, k):
     return [(*rows[i][:3], float(scores[i])) for i in best]
 
 
-def retrieve(conn, model, question, k=5, method="hybrid", bm25=None, reranker=None):
-    """Return the top-k chunks as rows (source, page, content, score)."""
+def retrieve(store, model, question, k=5, method="hybrid", bm25=None, reranker=None):
+    """Return the top-k chunks as rows (source, page, content, score).
+    `store` is a PgStore (PostgreSQL, local) or a MemoryStore (public demo): both have vector_search()."""
     if method == "keyword":
-        return keyword_search(conn, question, k)
+        return store.keyword_search(question, k)
     if method == "bm25":
         return bm25.search(question, k)
     query = model.encode(question, normalize_embeddings=True)
     if method == "embedding":
-        return search(conn, query, k)
+        return store.vector_search(query, k)
     if method == "hybrid_tsrank":
-        return rrf_merge([search(conn, query, CANDIDATES), keyword_search(conn, question, CANDIDATES)], k)
-    candidates = rrf_merge([search(conn, query, CANDIDATES), bm25.search(question, CANDIDATES)], CANDIDATES)
+        return rrf_merge([store.vector_search(query, CANDIDATES), store.keyword_search(question, CANDIDATES)], k)
+    candidates = rrf_merge([store.vector_search(query, CANDIDATES), bm25.search(question, CANDIDATES)], CANDIDATES)
     if method == "rerank":
         return rerank(reranker, question, candidates, k)          # hybrid → 20 candidates → reranker → top k
     return candidates[:k]                                          # hybrid = embedding + BM25

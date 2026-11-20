@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
-from db import connect
+from db import PgStore, connect
 from ingest import MODEL_NAME
 from rag import answer
 from retrieval import RERANKER_NAME, BM25Index
@@ -18,9 +18,10 @@ state = {}
 async def lifespan(app):
     """Load the models and the BM25 index once, when the server starts."""
     state["conn"] = connect()
+    state["store"] = PgStore(state["conn"])
     state["model"] = SentenceTransformer(MODEL_NAME, device="cpu")
     state["reranker"] = CrossEncoder(RERANKER_NAME, device="cpu")
-    state["bm25"] = BM25Index(state["conn"])
+    state["bm25"] = BM25Index(state["store"])
     yield
     state["conn"].close()
 
@@ -63,6 +64,6 @@ def health():
 @app.post("/ask", response_model=AskResponse)
 def ask(request: AskRequest):
     try:
-        return answer(state["conn"], state["model"], state["bm25"], state["reranker"], request.question)
+        return answer(state["store"], state["model"], state["bm25"], state["reranker"], request.question)
     except Exception as error:          # e.g. Ollama is not running
         raise HTTPException(status_code=503, detail=f"Could not answer: {error}") from error

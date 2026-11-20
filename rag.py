@@ -1,14 +1,24 @@
 """Answer a question: retrieve chunks, then let the local LLM (Ollama) write a cited answer."""
 import json
 import os
+import time
+import tomllib
+from pathlib import Path
 
 import requests
 from pydantic import BaseModel
 
 from retrieval import retrieve
 
+# Two ways to run the LLM, chosen with the LLM_BACKEND environment variable:
+#   "ollama" (default): a small model on this computer's GPU, nothing leaves the machine
+#   "groq": a large model through Groq's free API, used by the public demo (needs GROQ_API_KEY)
+LLM_BACKEND = os.environ.get("LLM_BACKEND", "ollama")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-LLM_MODEL = os.environ.get("LLM_MODEL", "qwen2.5:3b")     # chosen over llama3.2:3b on the evaluation set
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+DEFAULT_MODELS = {"ollama": "qwen2.5:3b",                 # chosen over llama3.2:3b on the evaluation set
+                  "groq": "openai/gpt-oss-120b"}       # largest open model on Groq's free tier (Nov 2026)
+LLM_MODEL = os.environ.get("LLM_MODEL", DEFAULT_MODELS[LLM_BACKEND])
 TOP_K = 5                      # chunks given to the LLM (5 x ~200 tokens fits easily in 4096)
 NOT_FOUND = "I could not find this in the Erasmus+ Programme Guide or the IGU documents."
 
@@ -17,6 +27,11 @@ Answer ONLY with information from the numbered passages below. Do not use your o
 If the passages do not contain the answer, write "not found" and set "found" to false.
 Keep the answer short (1-4 sentences) and keep exact numbers, amounts and dates as written.
 In "citations", list the numbers of the passages you used."""
+
+
+JSON_INSTRUCTION = """
+Reply with a JSON object with exactly these keys, in this order:
+{"answer": "<short answer or 'not found'>", "citations": [<passage numbers>], "found": <true or false>}"""
 
 
 class LLMAnswer(BaseModel):
@@ -37,7 +52,14 @@ def build_prompt(question, rows):
 
 
 def ask_llm(prompt):
-    """Call Ollama's chat API and parse the structured JSON answer."""
+    """Send the prompt to the configured backend and parse the structured JSON answer."""
+    if LLM_BACKEND == "groq":
+        return ask_groq(prompt)
+    return ask_ollama(prompt)
+
+
+def ask_ollama(prompt):
+    """Call Ollama's chat API; the JSON schema forces the reply into the LLMAnswer shape."""
     response = requests.post(
         f"{OLLAMA_URL}/api/chat",
         json={
@@ -53,9 +75,45 @@ def ask_llm(prompt):
     return LLMAnswer.model_validate(json.loads(response.json()["message"]["content"]))
 
 
-def answer(conn, model, bm25, reranker, question):
+def groq_api_key():
+    """The key comes from the GROQ_API_KEY environment variable or from .streamlit/secrets.toml
+    (the same file Streamlit uses; it is in .gitignore, so the key is never committed)."""
+    if os.environ.get("GROQ_API_KEY"):
+        return os.environ["GROQ_API_KEY"].strip()
+    secrets = Path(__file__).parent / ".streamlit" / "secrets.toml"
+    with open(secrets, "rb") as f:
+        return tomllib.load(f)["GROQ_API_KEY"].strip()
+
+
+def ask_groq(prompt, retries=5):
+    """Call Groq's OpenAI-compatible API in JSON mode; the expected keys are described in the prompt.
+    The free tier allows about 8,000 tokens per minute (~5 questions), so on a 429 we wait and retry."""
+    for attempt in range(retries):
+        response = requests.post(
+            GROQ_URL,
+            headers={"Authorization": f"Bearer {groq_api_key()}"},
+            json={
+                "model": LLM_MODEL,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT + JSON_INSTRUCTION},
+                    {"role": "user", "content": prompt},
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0,
+            },
+            timeout=60,
+        )
+        if response.status_code == 429 and attempt < retries - 1:   # rate limit: wait, then try again
+            time.sleep(10 * (attempt + 1))
+            continue
+        if not response.ok:            # Groq explains the problem in the body (e.g. an unknown model name)
+            raise RuntimeError(f"Groq error {response.status_code}: {response.text}")
+        return LLMAnswer.model_validate(json.loads(response.json()["choices"][0]["message"]["content"]))
+
+
+def answer(store, model, bm25, reranker, question):
     """Full RAG pipeline: retrieve -> rerank -> generate. Returns a dict ready for the API."""
-    rows = retrieve(conn, model, question, k=TOP_K, method="rerank", bm25=bm25, reranker=reranker)
+    rows = retrieve(store, model, question, k=TOP_K, method="rerank", bm25=bm25, reranker=reranker)
     llm = ask_llm(build_prompt(question, rows))
 
     # Turn passage numbers back into (source, page); ignore numbers the model invented.
@@ -88,12 +146,12 @@ if __name__ == "__main__":
 
     from sentence_transformers import CrossEncoder, SentenceTransformer
 
-    from db import connect
+    from db import PgStore, connect
     from ingest import MODEL_NAME
     from retrieval import RERANKER_NAME, BM25Index
 
     question = " ".join(sys.argv[1:]) or "How much monthly grant does IGU pay for a traineeship in Italy?"
-    conn = connect()
-    result = answer(conn, SentenceTransformer(MODEL_NAME, device="cpu"), BM25Index(conn),
+    store = PgStore(connect())
+    result = answer(store, SentenceTransformer(MODEL_NAME, device="cpu"), BM25Index(store),
                     CrossEncoder(RERANKER_NAME, device="cpu"), question)
     print(json.dumps(result, indent=2, ensure_ascii=False))

@@ -10,24 +10,26 @@ import time
 import pandas as pd
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
-from db import connect
+from db import PgStore, connect
 from ingest import MODEL_NAME
 from metrics import numbers, parse_pages
-from rag import LLM_MODEL, answer
+from rag import LLM_BACKEND, LLM_MODEL, answer
 from retrieval import RERANKER_NAME, BM25Index
 
 
 if __name__ == "__main__":
     questions = pd.read_csv("eval/questions.csv")
-    conn = connect()
+    store = PgStore(connect())
     model = SentenceTransformer(MODEL_NAME, device="cpu")
-    bm25 = BM25Index(conn)
+    bm25 = BM25Index(store)
     reranker = CrossEncoder(RERANKER_NAME, device="cpu")
 
     records = []
     for _, q in questions.iterrows():
+        if LLM_BACKEND == "groq":
+            time.sleep(12)             # free tier: ~8,000 tokens per minute, one question uses ~1,600
         start = time.time()
-        result = answer(conn, model, bm25, reranker, q["question"])
+        result = answer(store, model, bm25, reranker, q["question"])
         seconds = time.time() - start
 
         cited = {(s["source"], s["page"]) for s in result["sources"]}
@@ -47,7 +49,9 @@ if __name__ == "__main__":
         print(f"{q['id']:>3} {seconds:5.1f}s  found={result['found']!s:<5}  {result['answer'][:90]}")
 
     df = pd.DataFrame(records)
-    df.to_csv(f"eval/answers_{LLM_MODEL.replace(':', '-')}.csv", index=False)
+    safe_name = LLM_MODEL.replace(":", "-").replace("/", "-")        # "openai/gpt-oss-120b" -> "openai-gpt-oss-120b"
+    df.to_csv(f"eval/answers_{safe_name}.csv", index=False)
+    print("saved", f"eval/answers_{safe_name}.csv")
 
     answerable = df[df["type"] != "none"]
     print(f"\n--- summary ({LLM_MODEL}) ---")

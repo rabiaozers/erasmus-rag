@@ -80,3 +80,19 @@ def keyword_search(conn, question, k=20):
 def all_chunks(conn):
     """Every chunk as (source, page, content), in id order. Used to build the BM25 index."""
     return conn.execute("SELECT source, page, content FROM chunks ORDER BY id;").fetchall()
+
+
+class PgStore:
+    """Chunks stored in PostgreSQL (local setup). Same interface as MemoryStore in memory_store.py."""
+
+    def __init__(self, conn):
+        self.conn = conn
+
+    def vector_search(self, query_embedding, k):
+        return search(self.conn, query_embedding, k)
+
+    def keyword_search(self, question, k):
+        return keyword_search(self.conn, question, k)
+
+    def all_chunks(self):
+        return all_chunks(self.conn)

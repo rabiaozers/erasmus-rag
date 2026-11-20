@@ -4,3 +4,5 @@ __pycache__/
 # Source documents are not committed: the Programme Guide is downloaded from the EU website,
 # and the IGU files belong to Istanbul Gelisim University.
 data/
+# API keys: never commit
+.streamlit/secrets.toml
