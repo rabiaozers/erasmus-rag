@@ -40,3 +40,8 @@ id,question,answer,pages,type
 39,money for train?,"Travel support by distance band; green travel (train, bus) gets more than plane",programme-guide-2027:76,short
 40,acceptance letter deadline,"July 20, 2026",igu-steps:2;igu-slides:8,short
 41,how long is erasmus,Studies and traineeships: 2 to 12 months,programme-guide-2027:67,short
+42,"İGÜ, İtalya'daki bir staj için aylık ne kadar hibe veriyor?",750 EUR / ayda,igu-slides:15;igu-steps:7,turkish
+43,Vize konusunda okul yardım ediyor mu?,Vize öğrencinin sorumluluğu; ofis vize kolaylaştırma (sponsorluk) mektubu hazırlar,igu-steps:3;igu-slides:17,turkish
+44,Gençlik değişimi kaç gün sürer?,5-21 gün (yol günleri hariç),programme-guide-2027:157,turkish
+45,Kabul mektubunu ne zamana kadar teslim etmeliyim?,En geç 20 Temmuz 2026,igu-steps:2;igu-slides:8,turkish
+46,Hangi sigortayı yaptırmalıyım?,Kaza sigortası ve şahsi sorumluluk dahil seyahat sağlık sigortası,igu-steps:3,turkish

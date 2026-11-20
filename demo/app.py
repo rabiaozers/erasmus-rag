@@ -65,7 +65,8 @@ if request and request.get("id") != st.session_state.get("answered_id"):
         result = {"error": "Please write a slightly longer question."}
     else:
         try:
-            result = answer(store, model, bm25, reranker, question)
+            lang = request.get("lang") if request.get("lang") in ("en", "tr") else "en"
+            result = answer(store, model, bm25, reranker, question, lang)
         except Exception as error:                  # e.g. the free LLM API is busy
             result = {"error": f"the assistant could not answer right now: {error}"[:300]}
     result["id"] = request["id"]

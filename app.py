@@ -42,6 +42,7 @@ app = FastAPI(title="Erasmus+ Assistant", lifespan=lifespan)
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=3, max_length=500)
+    lang: str = Field("en", pattern="^(en|tr)$")          # language of the page
 
 
 class Source(BaseModel):
@@ -77,6 +78,6 @@ def health():
 @app.post("/ask", response_model=AskResponse)
 def ask(request: AskRequest):
     try:
-        return answer(state["store"], state["model"], state["bm25"], state["reranker"], request.question)
+        return answer(state["store"], state["model"], state["bm25"], state["reranker"], request.question, request.lang)
     except Exception as error:          # e.g. Ollama is not running
         raise HTTPException(status_code=503, detail=f"Could not answer: {error}") from error

@@ -22,12 +22,17 @@ LLM_MODEL = os.environ.get("LLM_MODEL", DEFAULT_MODELS[LLM_BACKEND])
 TOP_K = 5                      # chunks given to the LLM (5 x ~200 tokens fits easily in 4096)
 REWRITE = os.environ.get("REWRITE", "1") == "1"      # rewrite the question into a fuller search query
 FALLBACK = os.environ.get("FALLBACK", "1") == "1"    # labelled general-knowledge answer when the documents have nothing
-NOT_FOUND = "I could not find this in the Erasmus+ Programme Guide or the IGU documents."
+NOT_FOUND = {
+    "en": "I could not find this in the Erasmus+ Programme Guide or the IGU documents.",
+    "tr": "Bunu Erasmus+ Program Rehberi'nde veya İGÜ belgelerinde bulamadım.",
+}
+LANGUAGE_NAMES = {"en": "English", "tr": "Turkish"}
 
 SYSTEM_PROMPT = """You answer questions about the Erasmus+ programme.
 Answer ONLY with information from the numbered passages below. Do not use your own knowledge.
 If the passages do not contain the answer, write "not found" and set "found" to false.
 Keep the answer short (1-4 sentences) and keep exact numbers, amounts and dates as written.
+Write the answer in the same language as the question (the passages are in English; translate what you use).
 In "citations", list the numbers of the passages you used."""
 
 
@@ -113,8 +118,10 @@ def ask_llm(prompt):
 
 REWRITE_PROMPT = """Rewrite the user's question about the Erasmus+ programme as one clear, complete search query
 in English, as it would be phrased in the official Erasmus+ Programme Guide.
+If the question is in another language (e.g. Turkish), translate it into English.
 Keep every name, country and number from the question. Do not answer it.
-Example: "can i go to spain" -> "Is Spain an eligible destination country for an Erasmus+ mobility?"
+Examples: "can i go to spain" -> "Is Spain an eligible destination country for an Erasmus+ mobility?"
+"vize yardımı?" -> "What help do Erasmus+ participants get with their visa application?"
 Reply with the query only."""
 
 
@@ -127,7 +134,8 @@ def rewrite_query(question):
 FALLBACK_PROMPT = """The official Erasmus+ documents do not answer the user's question.
 Give a short, helpful answer (2-3 sentences) from general knowledge about Erasmus+.
 Do not invent amounts, dates or rules: for anything that depends on the university, the country or the year,
-tell the student to check with their Erasmus office."""
+tell the student to check with their Erasmus office.
+Write the answer in the same language as the question."""
 
 
 def general_answer(question):
@@ -135,9 +143,10 @@ def general_answer(question):
     return chat(FALLBACK_PROMPT, question).strip()
 
 
-def answer(store, model, bm25, reranker, question):
+def answer(store, model, bm25, reranker, question, lang="en"):
     """Full RAG pipeline: rewrite -> retrieve -> rerank -> generate (-> labelled fallback).
-    answer_type is "documents" (cited answer), "general" (labelled, not from the documents) or "none"."""
+    answer_type is "documents" (cited answer), "general" (labelled, not from the documents) or "none".
+    `lang` is the language of the page ("en" or "tr"); the answer itself follows the language of the question."""
     search_query = rewrite_query(question) if REWRITE else question
     queries = [question] if search_query.lower() == question.lower() else [question, search_query]
     rows = retrieve(store, model, question, k=TOP_K, method="rerank", bm25=bm25, reranker=reranker, search_queries=queries)
@@ -153,12 +162,14 @@ def answer(store, model, bm25, reranker, question):
     # When the model says the passages do not answer the question, we do not trust its free text either:
     # a small model may still "explain" something loosely related. Return a fixed message instead.
     text = llm.answer
-    says_not_found = any(phrase in text.lower() for phrase in ("not found", "no answer", "do not cover", "not mentioned"))
+    says_not_found = any(phrase in text.lower() for phrase in (
+        "not found", "no answer", "do not cover", "not mentioned",           # English
+        "bulunamadı", "bulamadım", "yer almıyor", "belirtilmemiş"))           # Turkish
     if says_not_found:                       # the flag and the text disagree: trust the text
         llm.found = False
     answer_type = "documents"
     if not llm.found:
-        sources, text, answer_type = [], NOT_FOUND, "none"
+        sources, text, answer_type = [], NOT_FOUND.get(lang, NOT_FOUND["en"]), "none"
         if FALLBACK:
             text, answer_type = general_answer(question), "general"
 

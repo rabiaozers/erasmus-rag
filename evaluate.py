@@ -52,7 +52,8 @@ if __name__ == "__main__":
     for method, r in results.items():
         print(f"{method:<16}" + "".join(f"  {r[k]:>8.2f}" for k in KS))
 
-    short = questions[questions["type"] == "short"]
-    print(f"\nonly the {len(short)} short questions, recall@5:")
-    for method in ("rerank", "rerank+rewrite"):
-        print(f"{method:<16}  {evaluate(store, model, bm25, reranker, short, method)[5]:.2f}")
+    for group in ("short", "turkish"):
+        subset = questions[questions["type"] == group]
+        print(f"\nonly the {len(subset)} {group} questions, recall@5:")
+        for method in ("rerank", "rerank+rewrite"):
+            print(f"{method:<16}  {evaluate(store, model, bm25, reranker, subset, method)[5]:.2f}")
