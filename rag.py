@@ -1,4 +1,4 @@
-"""Answer a question: retrieve chunks, then let the local LLM (Ollama) write a cited answer."""
+"""Answer a question: rewrite it, retrieve chunks, then let the LLM write a cited answer."""
 import json
 import os
 import time
@@ -20,6 +20,8 @@ DEFAULT_MODELS = {"ollama": "qwen2.5:3b",                 # chosen over llama3.2
                   "groq": "openai/gpt-oss-120b"}       # largest open model on Groq's free tier (Nov 2026)
 LLM_MODEL = os.environ.get("LLM_MODEL", DEFAULT_MODELS[LLM_BACKEND])
 TOP_K = 5                      # chunks given to the LLM (5 x ~200 tokens fits easily in 4096)
+REWRITE = os.environ.get("REWRITE", "1") == "1"      # rewrite the question into a fuller search query
+FALLBACK = os.environ.get("FALLBACK", "1") == "1"    # labelled general-knowledge answer when the documents have nothing
 NOT_FOUND = "I could not find this in the Erasmus+ Programme Guide or the IGU documents."
 
 SYSTEM_PROMPT = """You answer questions about the Erasmus+ programme.
@@ -51,28 +53,26 @@ def build_prompt(question, rows):
     return f"Passages:\n\n{passages}\n\nQuestion: {question}"
 
 
-def ask_llm(prompt):
-    """Send the prompt to the configured backend and parse the structured JSON answer."""
+def chat(system, user, schema=None):
+    """One call to the configured LLM backend. With `schema`, the reply is JSON in that shape."""
     if LLM_BACKEND == "groq":
-        return ask_groq(prompt)
-    return ask_ollama(prompt)
+        return chat_groq(system, user, json_mode=schema is not None)
+    return chat_ollama(system, user, schema)
 
 
-def ask_ollama(prompt):
-    """Call Ollama's chat API; the JSON schema forces the reply into the LLMAnswer shape."""
-    response = requests.post(
-        f"{OLLAMA_URL}/api/chat",
-        json={
-            "model": LLM_MODEL,
-            "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
-            "format": LLMAnswer.model_json_schema(),   # structured output: the reply must match this schema
-            "stream": False,
-            "options": {"temperature": 0, "num_ctx": 4096},
-        },
-        timeout=300,
-    )
+def chat_ollama(system, user, schema=None):
+    """Ollama's chat API; a JSON schema in `format` forces the reply into that shape."""
+    body = {
+        "model": LLM_MODEL,
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        "stream": False,
+        "options": {"temperature": 0, "num_ctx": 4096},
+    }
+    if schema:
+        body["format"] = schema                    # structured output: the reply must match this schema
+    response = requests.post(f"{OLLAMA_URL}/api/chat", json=body, timeout=300)
     response.raise_for_status()
-    return LLMAnswer.model_validate(json.loads(response.json()["message"]["content"]))
+    return response.json()["message"]["content"]
 
 
 def groq_api_key():
@@ -85,35 +85,62 @@ def groq_api_key():
         return tomllib.load(f)["GROQ_API_KEY"].strip()
 
 
-def ask_groq(prompt, retries=5):
-    """Call Groq's OpenAI-compatible API in JSON mode; the expected keys are described in the prompt.
-    The free tier allows about 8,000 tokens per minute (~5 questions), so on a 429 we wait and retry."""
+def chat_groq(system, user, json_mode=False, retries=5):
+    """Groq's OpenAI-compatible API. The free tier allows about 8,000 tokens per minute,
+    so on a 429 (rate limit) we wait and retry."""
+    body = {
+        "model": LLM_MODEL,
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        "temperature": 0,
+    }
+    if json_mode:
+        body["response_format"] = {"type": "json_object"}
     for attempt in range(retries):
-        response = requests.post(
-            GROQ_URL,
-            headers={"Authorization": f"Bearer {groq_api_key()}"},
-            json={
-                "model": LLM_MODEL,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT + JSON_INSTRUCTION},
-                    {"role": "user", "content": prompt},
-                ],
-                "response_format": {"type": "json_object"},
-                "temperature": 0,
-            },
-            timeout=60,
-        )
-        if response.status_code == 429 and attempt < retries - 1:   # rate limit: wait, then try again
+        response = requests.post(GROQ_URL, headers={"Authorization": f"Bearer {groq_api_key()}"}, json=body, timeout=60)
+        if response.status_code == 429 and attempt < retries - 1:
             time.sleep(10 * (attempt + 1))
             continue
         if not response.ok:            # Groq explains the problem in the body (e.g. an unknown model name)
             raise RuntimeError(f"Groq error {response.status_code}: {response.text}")
-        return LLMAnswer.model_validate(json.loads(response.json()["choices"][0]["message"]["content"]))
+        return response.json()["choices"][0]["message"]["content"]
+
+
+def ask_llm(prompt):
+    """Ask for a cited answer from the passages, as structured JSON (LLMAnswer)."""
+    system = SYSTEM_PROMPT + (JSON_INSTRUCTION if LLM_BACKEND == "groq" else "")
+    return LLMAnswer.model_validate(json.loads(chat(system, prompt, schema=LLMAnswer.model_json_schema())))
+
+
+REWRITE_PROMPT = """Rewrite the user's question about the Erasmus+ programme as one clear, complete search query
+in English, as it would be phrased in the official Erasmus+ Programme Guide.
+Keep every name, country and number from the question. Do not answer it.
+Example: "can i go to spain" -> "Is Spain an eligible destination country for an Erasmus+ mobility?"
+Reply with the query only."""
+
+
+def rewrite_query(question):
+    """Short questions ("can i go to italy") search badly; a fuller query finds the right pages."""
+    query = chat(REWRITE_PROMPT, question).strip().strip('"').splitlines()[0][:300]
+    return query if len(query) > 5 else question
+
+
+FALLBACK_PROMPT = """The official Erasmus+ documents do not answer the user's question.
+Give a short, helpful answer (2-3 sentences) from general knowledge about Erasmus+.
+Do not invent amounts, dates or rules: for anything that depends on the university, the country or the year,
+tell the student to check with their Erasmus office."""
+
+
+def general_answer(question):
+    """A clearly labelled answer from the model's own knowledge, used only when the documents have nothing."""
+    return chat(FALLBACK_PROMPT, question).strip()
 
 
 def answer(store, model, bm25, reranker, question):
-    """Full RAG pipeline: retrieve -> rerank -> generate. Returns a dict ready for the API."""
-    rows = retrieve(store, model, question, k=TOP_K, method="rerank", bm25=bm25, reranker=reranker)
+    """Full RAG pipeline: rewrite -> retrieve -> rerank -> generate (-> labelled fallback).
+    answer_type is "documents" (cited answer), "general" (labelled, not from the documents) or "none"."""
+    search_query = rewrite_query(question) if REWRITE else question
+    queries = [question] if search_query.lower() == question.lower() else [question, search_query]
+    rows = retrieve(store, model, question, k=TOP_K, method="rerank", bm25=bm25, reranker=reranker, search_queries=queries)
     llm = ask_llm(build_prompt(question, rows))
 
     # Turn passage numbers back into (source, page); ignore numbers the model invented.
@@ -129,14 +156,19 @@ def answer(store, model, bm25, reranker, question):
     says_not_found = any(phrase in text.lower() for phrase in ("not found", "no answer", "do not cover", "not mentioned"))
     if says_not_found:                       # the flag and the text disagree: trust the text
         llm.found = False
+    answer_type = "documents"
     if not llm.found:
-        sources, text = [], NOT_FOUND
+        sources, text, answer_type = [], NOT_FOUND, "none"
+        if FALLBACK:
+            text, answer_type = general_answer(question), "general"
 
     return {
         "question": question,
         "found": llm.found,
+        "answer_type": answer_type,
         "answer": text,
         "sources": sources,
+        "search_query": search_query,
         "retrieved": [{"source": r[0], "page": r[1], "score": round(r[3], 3)} for r in rows],
     }
 

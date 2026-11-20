@@ -125,6 +125,11 @@
   .msg.user .bubble::before { left: auto; right: -11px; border-left: 0; border-right: 3px solid var(--ink); transform: skewY(35deg); }
   .bubble.notfound { background: #f1eaff; color: var(--ink); }
   .bubble.error { background: #fff0d6; color: var(--ink); }
+  .bubble.general { background: #fff4c2; color: var(--ink); }
+  .tag {
+    display: inline-block; margin-bottom: 6px; font-size: 13px;
+    background: #ffd84d; border: 2px solid var(--ink); border-radius: 8px; padding: 1px 8px;
+  }
 
   .sources { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .chip {
@@ -577,12 +582,17 @@ async function requestAnswer(question) {
 }
 
 function showAnswer(data) {
+  const searched = data.search_query && data.search_query.toLowerCase() !== data.question.toLowerCase()
+    ? `<li>searched as: “${escapeHtml(data.search_query)}”</li>` : "";
   if (data.found) {
     const chips = data.sources.map((s) => `<span class="chip">${escapeHtml(label(s))}</span>`).join("");
     const found = data.retrieved.map((r) => `<li>${escapeHtml(label(r))} <small>(score ${r.score})</small></li>`).join("");
     addMessage("bot", `${escapeHtml(data.answer)}
       ${chips ? `<div class="sources">${chips}</div>` : ""}
-      <details><summary>what the search found</summary><ul>${found}</ul></details>`);
+      <details><summary>what the search found</summary><ul>${searched}${found}</ul></details>`);
+  } else if (data.answer_type === "general") {
+    addMessage("bot", `<span class="tag">⚠ not from the documents</span><br>${escapeHtml(data.answer)}
+      <br><small>The guide and the IGU documents don't cover this, so this is a general answer. Please check with your Erasmus office ♡</small>`, "general");
   } else {
     addMessage("bot", `${escapeHtml(data.answer)}<br><small>(I only answer from the documents, so I won't guess ♡)</small>`, "notfound");
   }

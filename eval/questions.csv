@@ -26,10 +26,17 @@ id,question,answer,pages,type
 25,How much does a room in Pisa cost per month?,Not in the guide,,none
 26,When must I submit my acceptance letter to the IGU Erasmus office?,"No later than July 20, 2026; otherwise it counts as withdrawal",igu-steps:2;igu-slides:8,easy
 27,What happens if I do not attend the orientation meeting?,5 points are deducted from your next Erasmus application,igu-steps:2,easy
-28,How much monthly grant does IGU pay for a traineeship in Italy?,750 EUR per month (1st and 2nd group countries); 600 EUR for 3rd group,igu-slides:15,table
+28,How much monthly grant does IGU pay for a traineeship in Italy?,750 EUR per month (1st and 2nd group countries); 600 EUR for 3rd group,igu-slides:15;igu-steps:7,table
 29,When is the Erasmus grant paid?,80% within 3 weeks after the grant agreement is signed and the arrival form is submitted; the remaining 20% after mobility when return documents are submitted,igu-steps:4;igu-slides:15,number
 30,Does the IGU Erasmus office help with my visa?,"No, the visa is the student's responsibility; the office only prepares a visa facilitation (sponsorship) letter within 7 days",igu-steps:3;igu-slides:17,partial
 31,Which bank account do I need for the grant?,A EURO account in your own name at Ziraat Katilim Bank,igu-steps:4;igu-slides:17,easy
 32,Which documents do I need for the grant agreement?,"Insurance policy, bank account details, scanned passport and visa, plane ticket copy, acceptance letter and LA",igu-steps:4,list
 33,What insurance do I need for my traineeship?,Accident insurance and travel health insurance including personal liability,igu-steps:3,easy
 34,Which documents do I need after returning to receive the final 20% of the grant?,"Certificate of attendance, LA after mobility, passport entry/exit stamps, EU participant survey",igu-slides:19,list
+35,can i go to italy,"Yes: Italy is a Group 1 country (EU Member State), and IGU lists it in its 1st/2nd group for grants",programme-guide-2027:80;igu-steps:7,short
+36,italy grant igu,750 EUR per month for a traineeship (600 EUR for studies),igu-slides:15;igu-steps:7,short
+37,visa help?,The visa is the participant's responsibility; the IGU office prepares a visa facilitation letter,programme-guide-2027:38;igu-steps:3;igu-slides:17,short
+38,youth exchange age,13 to 30,programme-guide-2027:158,short
+39,money for train?,"Travel support by distance band; green travel (train, bus) gets more than plane",programme-guide-2027:76,short
+40,acceptance letter deadline,"July 20, 2026",igu-steps:2;igu-slides:8,short
+41,how long is erasmus,Studies and traineeships: 2 to 12 months,programme-guide-2027:67,short

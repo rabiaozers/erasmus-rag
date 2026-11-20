@@ -60,9 +60,11 @@ def rerank(reranker, question, rows, k):
     return [(*rows[i][:3], float(scores[i])) for i in best]
 
 
-def retrieve(store, model, question, k=5, method="hybrid", bm25=None, reranker=None):
+def retrieve(store, model, question, k=5, method="hybrid", bm25=None, reranker=None, search_queries=None):
     """Return the top-k chunks as rows (source, page, content, score).
-    `store` is a PgStore (PostgreSQL, local) or a MemoryStore (public demo): both have vector_search()."""
+    `store` is a PgStore (PostgreSQL, local) or a MemoryStore (public demo): both have vector_search().
+    `search_queries` (hybrid and rerank only): several phrasings of the question, e.g. the original and
+    a rewritten one; every phrasing is searched and all result lists are fused with RRF."""
     if method == "keyword":
         return store.keyword_search(question, k)
     if method == "bm25":
@@ -72,7 +74,12 @@ def retrieve(store, model, question, k=5, method="hybrid", bm25=None, reranker=N
         return store.vector_search(query, k)
     if method == "hybrid_tsrank":
         return rrf_merge([store.vector_search(query, CANDIDATES), store.keyword_search(question, CANDIDATES)], k)
-    candidates = rrf_merge([store.vector_search(query, CANDIDATES), bm25.search(question, CANDIDATES)], CANDIDATES)
+    lists = []
+    for q in search_queries or [question]:
+        q_vector = query if q == question else model.encode(q, normalize_embeddings=True)
+        lists += [store.vector_search(q_vector, CANDIDATES), bm25.search(q, CANDIDATES)]
+    candidates = rrf_merge(lists, CANDIDATES)
     if method == "rerank":
-        return rerank(reranker, question, candidates, k)          # hybrid → 20 candidates → reranker → top k
+        rerank_query = (search_queries or [question])[-1]          # the fullest phrasing reads best for the reranker
+        return rerank(reranker, rerank_query, candidates, k)       # hybrid → 20 candidates → reranker → top k
     return candidates[:k]                                          # hybrid = embedding + BM25

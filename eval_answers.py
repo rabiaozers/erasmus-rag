@@ -37,6 +37,7 @@ if __name__ == "__main__":
         record = {
             "id": q["id"], "type": q["type"], "question": q["question"],
             "expected": q["answer"], "generated": result["answer"], "found": result["found"],
+            "answer_type": result["answer_type"], "search_query": result["search_query"],
             "cited": ";".join(f"{s}:{p}" for s, p in sorted(cited)), "seconds": round(seconds, 1),
         }
         if q["type"] == "none":
@@ -59,4 +60,5 @@ if __name__ == "__main__":
     print(f"answered (found=True):              {int(answerable['found'].sum())}/{len(answerable)}")
     print(f"cites a correct page:               {int(answerable['citation_ok'].sum())}/{len(answerable)}")
     print(f"all key numbers present:            {int(df['numbers_ok'].sum())}/{df['numbers_ok'].notna().sum()}")
+    print(f"labelled general answers (fallback): {int((df['answer_type'] == 'general').sum())}/{len(df)}")
     print(f"average time per question:          {df['seconds'].mean():.1f} s")

@@ -56,8 +56,10 @@ class Retrieved(Source):
 class AskResponse(BaseModel):
     question: str
     found: bool
+    answer_type: str            # "documents" | "general" (labelled, not from the documents) | "none"
     answer: str
     sources: list[Source]
+    search_query: str
     retrieved: list[Retrieved]
 
 

@@ -5,10 +5,11 @@ from sentence_transformers import CrossEncoder, SentenceTransformer
 from db import PgStore, connect
 from ingest import MODEL_NAME
 from metrics import parse_pages
+from rag import rewrite_query
 from retrieval import RERANKER_NAME, BM25Index, retrieve
 
 KS = (1, 3, 5)
-METHODS = ("embedding", "bm25", "hybrid", "rerank")
+METHODS = ("embedding", "bm25", "hybrid", "rerank", "rerank+rewrite")
 
 
 def evaluate(store, model, bm25, reranker, questions, method, verbose=False):
@@ -16,7 +17,12 @@ def evaluate(store, model, bm25, reranker, questions, method, verbose=False):
     hits = {k: 0 for k in KS}
     for _, q in questions.iterrows():
         correct_pages = parse_pages(q["pages"])
-        rows = retrieve(store, model, q["question"], k=max(KS), method=method, bm25=bm25, reranker=reranker)
+        if method == "rerank+rewrite":                          # the full pipeline of rag.py: needs the LLM
+            rewritten = rewrite_query(q["question"])
+            rows = retrieve(store, model, q["question"], k=max(KS), method="rerank", bm25=bm25, reranker=reranker,
+                            search_queries=[q["question"], rewritten])
+        else:
+            rows = retrieve(store, model, q["question"], k=max(KS), method=method, bm25=bm25, reranker=reranker)
         found_pages = [(row[0], row[1]) for row in rows]      # row = (source, page, content, score)
 
         for k in KS:
@@ -42,6 +48,11 @@ if __name__ == "__main__":
         print(f"\n--- {method} ---")
         results[method] = evaluate(store, model, bm25, reranker, questions, method, verbose=True)
 
-    print(f"\n{'method':<14}" + "".join(f"  recall@{k}" for k in KS))
+    print(f"\n{'method':<16}" + "".join(f"  recall@{k}" for k in KS))
     for method, r in results.items():
-        print(f"{method:<14}" + "".join(f"  {r[k]:>8.2f}" for k in KS))
+        print(f"{method:<16}" + "".join(f"  {r[k]:>8.2f}" for k in KS))
+
+    short = questions[questions["type"] == "short"]
+    print(f"\nonly the {len(short)} short questions, recall@5:")
+    for method in ("rerank", "rerank+rewrite"):
+        print(f"{method:<16}  {evaluate(store, model, bm25, reranker, short, method)[5]:.2f}")
