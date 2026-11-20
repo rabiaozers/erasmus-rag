@@ -1,0 +1,26 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: rag
+      POSTGRES_DB: rag
+    ports:
+      - "5433:5432"               # 5432 on this computer is taken by a local PostgreSQL
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DB_URL: postgresql://rag:rag@db:5432/rag                  # inside Docker the database is called "db"
+      OLLAMA_URL: http://host.docker.internal:11434              # Ollama runs on the host (it needs the GPU)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:

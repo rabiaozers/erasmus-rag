@@ -1,0 +1,13 @@
+fastapi
+numpy
+pandas
+pgvector
+psycopg[binary]
+pydantic
+pypdf
+rank-bm25
+requests
+scikit-learn
+sentence-transformers
+snowballstemmer
+uvicorn

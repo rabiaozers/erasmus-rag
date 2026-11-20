@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+# Source documents are not committed: the Programme Guide is downloaded from the EU website,
+# and the IGU files belong to Istanbul Gelisim University.
+data/

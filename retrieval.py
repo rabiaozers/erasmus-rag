@@ -1,0 +1,77 @@
+"""Ways to retrieve chunks: embedding, keyword (ts_rank), BM25, hybrid (RRF), and hybrid + reranker."""
+import re
+
+import numpy as np
+import snowballstemmer
+from rank_bm25 import BM25Okapi
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
+from db import all_chunks, keyword_search, search
+
+RRF_K = 60          # the constant in 1 / (RRF_K + rank); the usual default
+CANDIDATES = 20     # how many results each search contributes to the fusion
+RERANKER_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"   # small English cross-encoder, fine on CPU
+
+
+def rrf_merge(result_lists, k):
+    """Reciprocal Rank Fusion: sum 1 / (RRF_K + rank) over every list a chunk appears in."""
+    scores = {}
+    rows_by_key = {}
+    for results in result_lists:
+        for rank, row in enumerate(results, start=1):     # rank = 1, 2, 3 ...
+            key = (row[1], row[2])                          # (page, content) identifies a chunk
+            rows_by_key[key] = row
+            scores[key] = scores.get(key, 0) + 1 / (RRF_K + rank)
+
+    best = sorted(scores, key=scores.get, reverse=True)[:k]
+    return [rows_by_key[key] for key in best]
+
+
+STEMMER = snowballstemmer.stemmer("english")       # the same algorithm PostgreSQL uses
+
+
+def tokenize(text):
+    """Lowercase, drop stop words, reduce words to their stem:
+    'What are the Youth Exchanges grants?' -> ['youth', 'exchang', 'grant']"""
+    words = re.findall(r"[a-z0-9]+", text.lower())
+    words = [w for w in words if w not in ENGLISH_STOP_WORDS]
+    return STEMMER.stemWords(words)
+
+
+class BM25Index:
+    """Keyword search with IDF: rare words like 'visa' count more than common ones like 'erasmus'."""
+
+    def __init__(self, conn):
+        self.rows = all_chunks(conn)                                   # (source, page, content)
+        self.bm25 = BM25Okapi([tokenize(row[2]) for row in self.rows])  # IDF is computed here, like fit()
+
+    def search(self, question, k=20):
+        scores = self.bm25.get_scores(tokenize(question))              # one score per chunk
+        best = np.argsort(scores)[::-1][:k]                            # indices of the k highest scores
+        return [(*self.rows[i], float(scores[i])) for i in best]
+
+
+def rerank(reranker, question, rows, k):
+    """Read (question, chunk) TOGETHER and score how well the chunk answers the question.
+    Slower than embeddings, so we only apply it to the few candidates from the hybrid search."""
+    pairs = [(question, row[2]) for row in rows]                 # row[2] = chunk text
+    scores = reranker.predict(pairs)                             # one relevance score per pair
+    best = np.argsort(scores)[::-1][:k]
+    return [(*rows[i][:3], float(scores[i])) for i in best]
+
+
+def retrieve(conn, model, question, k=5, method="hybrid", bm25=None, reranker=None):
+    """Return the top-k chunks as rows (source, page, content, score)."""
+    if method == "keyword":
+        return keyword_search(conn, question, k)
+    if method == "bm25":
+        return bm25.search(question, k)
+    query = model.encode(question, normalize_embeddings=True)
+    if method == "embedding":
+        return search(conn, query, k)
+    if method == "hybrid_tsrank":
+        return rrf_merge([search(conn, query, CANDIDATES), keyword_search(conn, question, CANDIDATES)], k)
+    candidates = rrf_merge([search(conn, query, CANDIDATES), bm25.search(question, CANDIDATES)], CANDIDATES)
+    if method == "rerank":
+        return rerank(reranker, question, candidates, k)          # hybrid → 20 candidates → reranker → top k
+    return candidates[:k]                                          # hybrid = embedding + BM25
