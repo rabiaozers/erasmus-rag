@@ -37,7 +37,7 @@ from memory_store import MemoryStore  # noqa: E402
 from rag import LLM_MODEL, answer  # noqa: E402
 from retrieval import EMBEDDING_MODEL, RERANKER_NAME, BM25Index  # noqa: E402
 
-st.set_page_config(page_title="erasmus.exe · Erasmus+ Assistant", page_icon="🌸", layout="wide")
+st.set_page_config(page_title="IGU Erasmus Advisor (unofficial)", page_icon="🌸", layout="wide")
 st.markdown(                                        # let the chat page fill the whole Streamlit page
     """<style>
       header, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] { display: none !important; }
@@ -53,13 +53,21 @@ chat = components.declare_component("erasmus_chat", path=str(ROOT / "web"))
 
 
 @st.cache_resource(show_spinner="Waking up the assistant (about a minute on the first visit)...")
-def load():
+def load_models():
+    return SentenceTransformer(EMBEDDING_MODEL, device="cpu"), CrossEncoder(RERANKER_NAME, device="cpu")
+
+
+@st.cache_resource(show_spinner="Loading the documents...")
+def load_index(version):
+    """`version` is the index file's size and time: when a new index is pushed, the cache key changes and
+    the new chunks are loaded. (Without it, Streamlit kept serving the old index after an update.)"""
     store = MemoryStore(ROOT / "demo" / "chunks.json", ROOT / "demo" / "embeddings.npy")
-    return (store, SentenceTransformer(EMBEDDING_MODEL, device="cpu"), BM25Index(store),
-            CrossEncoder(RERANKER_NAME, device="cpu"))
+    return store, BM25Index(store)
 
 
-store, model, bm25, reranker = load()
+chunks_file = (ROOT / "demo" / "chunks.json").stat()
+model, reranker = load_models()
+store, bm25 = load_index((chunks_file.st_size, chunks_file.st_mtime))
 
 request = chat(
     health={"chunks": len(store.all_chunks()), "llm": LLM_MODEL},
