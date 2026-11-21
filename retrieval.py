@@ -56,8 +56,16 @@ def rerank(reranker, question, rows, k):
     Slower than embeddings, so we only apply it to the few candidates from the hybrid search."""
     pairs = [(question, row[2]) for row in rows]                 # row[2] = chunk text
     scores = reranker.predict(pairs)                             # one relevance score per pair
-    best = np.argsort(scores)[::-1][:k]
-    return [(*rows[i][:3], float(scores[i])) for i in best]
+    results, seen_pages = [], set()
+    for i in np.argsort(scores)[::-1]:
+        page = rows[i][:2]                                       # (source, page)
+        if page in seen_pages:                                   # one chunk per page: two chunks of the same page
+            continue                                             # would push another useful page out of the top k
+        seen_pages.add(page)
+        results.append((*rows[i][:3], float(scores[i])))
+        if len(results) == k:
+            break
+    return results
 
 
 def retrieve(store, model, question, k=5, method="hybrid", bm25=None, reranker=None, search_queries=None):

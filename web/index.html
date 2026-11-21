@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>erasmus.exe · Erasmus+ Assistant</title>
-<meta name="description" content="Ask questions about Erasmus+ and get answers with page citations from the EU Programme Guide 2027 and IGU traineeship documents.">
+<title>IGU Erasmus Advisor · İGÜ Erasmus Danışmanı (unofficial student project)</title>
+<meta name="description" content="An unofficial Erasmus+ assistant for Istanbul Gelişim University students: answers with page citations from the EU Programme Guide 2027 and IGU's public 2026 Erasmus+ guides (study and traineeship).">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -15,9 +15,7 @@
     --pink-deep: #e0569a;    /* title text, user text */
     --pink-pale: #ffd6e7;    /* window */
     --pink-paler: #ffe9f3;   /* bars */
-    --lilac: #c9d4ff;        .bunting { margin: -6px 2px 2px; line-height: 0; }
-
-  /* chat area */
+    --lilac: #c9d4ff;        /* chat area */
     --lilac-2: #dcd0ff;
     --cream: #fffaf6;
     --shadow: #c9a3d9;
@@ -64,6 +62,7 @@
   }
   .titlebar { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; }
   .titlebar h1 { margin: 0; font-size: 28px; font-weight: 600; color: var(--pink-deep); letter-spacing: .5px; flex: 1; }
+  #title-icon { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
   .winbtns { display: flex; gap: 6px; }
   .winbtns span {
     width: 30px; height: 30px; display: grid; place-items: center;
@@ -87,6 +86,20 @@
   .online-dot { display: inline-block; width: 8px; height: 8px; background: #6ccf7f; border: 2px solid var(--ink); margin: 0 4px 1px 2px; vertical-align: middle; }
   .online-dot.off { background: #c9c3cf; }
 
+  .sticker {                     /* says clearly that this is not an official IGU service */
+    display: inline-block; font-size: 11px; line-height: 1.2; vertical-align: 2px;
+    background: #fff4c2; border: 2px solid var(--ink); border-radius: 6px; padding: 0 5px;
+  }
+  .ticket {                      /* a little boarding pass: from IGU in Istanbul to Europe */
+    display: flex; align-items: center; gap: 6px; margin: -2px 0 6px;
+    background: var(--cream); border: 2px dashed var(--ink); border-radius: 10px;
+    padding: 3px 10px; font-size: 13px; white-space: nowrap;
+  }
+  .ticket svg { display: block; }
+  .ticket .route { flex: 1; min-width: 24px; height: 2px; position: relative;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 11px); }
+  .ticket .route span { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -55%);
+    background: var(--cream); padding: 0 3px; }
   .bunting { margin: -6px 2px 2px; line-height: 0; }
 
   /* chat area */
@@ -190,7 +203,6 @@
 
   @media (max-width: 480px) {
     body { padding: 20px 12px; }
-    .titlebar h1 { font-size: 22px; }
     .winbtns span { width: 24px; height: 24px; font-size: 13px; }
     .avatar { width: 40px; height: 40px; }
     .bubble { max-width: 82%; font-size: 16px; }
@@ -199,6 +211,9 @@
     .deco.hide-sm { display: none; }
     .field .deco-box { display: none; }
     .statusbar { font-size: 14px; }
+    .statusbar .icons { display: none; }
+    .titlebar h1 { font-size: 19px; white-space: nowrap; }
+    .ticket { font-size: 12px; padding: 3px 6px; }
   }
 </style>
 </head>
@@ -206,21 +221,26 @@
 
 <div id="decorations" aria-hidden="true"></div>
 
-<main class="window" aria-label="Erasmus+ assistant chat">
+<main class="window" aria-label="IGU Erasmus Advisor chat">
   <div class="titlebar">
     <span id="title-icon" aria-hidden="true"></span>
-    <h1>erasmus.exe</h1>
+    <h1>igu-erasmus.exe</h1>
     <div class="winbtns" aria-hidden="true"><span>_</span><span>▫</span><span>×</span></div>
   </div>
 
   <div class="statusbar">
     <span class="icons" id="status-icons" aria-hidden="true"></span>
-    <span><span data-i18n="contact">Erasmus Advisor Bot</span> <span class="online-dot" id="online-dot"></span><span id="status-text">connecting…</span></span>
+    <span><span data-i18n="contact">IGU Erasmus Advisor</span> <span class="sticker" data-i18n="unofficial">unofficial</span> <span class="online-dot" id="online-dot"></span><span id="status-text">connecting…</span></span>
     <span class="langs" role="group" aria-label="Language">
       <button type="button" data-lang="en" aria-pressed="true">EN</button><button type="button" data-lang="tr" aria-pressed="false">TR</button>
     </span>
   </div>
 
+  <div class="ticket" aria-hidden="true">
+    <span id="ticket-from-icon"></span><span class="where" data-i18n="ticketFrom">IGU · Avcılar, Istanbul</span>
+    <span class="route"><span id="ticket-plane"></span></span>
+    <span class="where" data-i18n="ticketTo">Europe</span><span id="ticket-to-icon"></span>
+  </div>
   <div class="bunting" id="bunting" aria-hidden="true"></div>
   <section class="chat" id="chat" aria-live="polite"></section>
 
@@ -235,8 +255,8 @@
 </main>
 
 <footer>
-  <span data-i18n-html="footer">Answers come from the <b>Erasmus+ Programme Guide 2027</b> and <b>Istanbul Gelişim University</b>'s traineeship documents,
-  with the pages they used. A student project, not affiliated with the European Commission: always check with your Erasmus office.</span><br>
+  <span data-i18n-html="footer">Answers come from the <b>Erasmus+ Programme Guide 2027</b> and <b>Istanbul Gelişim University</b>'s public Erasmus+ guides,
+  with the pages they used. An unofficial student project: not affiliated with Istanbul Gelişim University or the European Commission.</span><br>
   <a href="https://github.com/rabiaozers/erasmus-rag" target="_blank" rel="noopener" data-i18n="github">code, evaluation &amp; results on GitHub</a>
 </footer>
 
@@ -245,7 +265,8 @@
 const PALETTE = {
   O: "#5b3a55", Y: "#ffd84d", y: "#f2b33d", W: "#ffffff", P: "#ff9ec7", p: "#ff7fb3", R: "#ff5f7e",
   G: "#5cc46a", K: "#3a2433", S: "#ffe1cf", D: "#7a5cc0", B: "#d9e6ff", L: "#c8b6ff",
-  U: "#7f9cf5", C: "#fff4e0", c: "#e8d8bd", E: "#b98b6c"
+  U: "#7f9cf5", C: "#fff4e0", c: "#e8d8bd", E: "#b98b6c",
+  N: "#eaa65c", n: "#c27a3a", T: "#d9603f", A: "#a9dcf5"
 };
 const SPRITES = {
   star: [   // the assistant: a little star with a face
@@ -483,6 +504,78 @@ const SPRITES = {
     "OOCCCCCOO",
     "OOOOOOOOO"
   ],
+  bridge: [     // the Bosphorus Bridge, between Europe and Asia
+    ".......OO...............OO.......",
+    ".......OO...............OO.......",
+    "......KOOK.............KOOK......",
+    ".....K.OO.K...........K.OO.K.....",
+    "....K..OO.LK.........KL.OO..K....",
+    "...K...OO.L.K.......K.L.OO...K...",
+    "..K....OO.L.LKK...KKL.L.OO....K..",
+    ".K.....OO.L.L.LKKKL.L.L.OO.....K.",
+    "K......OO.L.L.L.L.L.L.L.OO......K",
+    "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+    "UUUUUUUOOUUUUUUUUUUUUUUUOOUUUUUUU",
+    "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+    ".......OO...............OO......."
+  ],
+  maiden: [     // the Maiden's Tower on its little island
+    ".....O.....",
+    "....ODO....",
+    "...ODDDO...",
+    "...OOOOO...",
+    "...OCLCO...",
+    "...OCCCO...",
+    "..OOOOOOO..",
+    "..OCLCLCO..",
+    "..OCCCCCO..",
+    "OOOOOOOOOOO",
+    "OCCLCCCLCCO",
+    "OCCCCCCCCCO",
+    "OcccccccccO",
+    "OOOOOOOOOOO"
+  ],
+  ferry: [      // an Istanbul ferry (vapur)
+    "........OO........",
+    "........OK........",
+    "......OOOOOO......",
+    "....OOWAWAWAOO....",
+    "OOOOOWWWWWWWWOOOOO",
+    "OWWWWWWWWWWWWWWWWO",
+    ".OKKKKKKKKKKKKKKO.",
+    "..OOOOOOOOOOOOOO.."
+  ],
+  seagull: [    // a martı, Istanbul's loudest resident
+    ".OO.....OO.",
+    "OWWO...OWWO",
+    "...OWOWO...",
+    "....OYO....",
+    ".....O....."
+  ],
+  simit: [
+    "...OOOO...",
+    ".OONNNNOO.",
+    ".ONnWNnNO.",
+    "ONNO..ONNO",
+    "ONO....ONO",
+    "ONO....ONO",
+    "ONNO..ONNO",
+    ".ONnNWnNO.",
+    ".OONNNNOO.",
+    "...OOOO..."
+  ],
+  tea: [        // tea in a tulip glass, on a saucer
+    "...L...L..",
+    ".OOOOOOOO.",
+    ".OWTTTTTO.",
+    "..OTTTTO..",
+    "...OTTO...",
+    "..OTTTTO..",
+    ".OTTTTTTO.",
+    ".OOOOOOOO.",
+    "OCCCCCCCCO",
+    "OOOOOOOOOO"
+  ],
   suitcase: [
     "....OOOO....",
     "....O..O....",
@@ -509,23 +602,31 @@ function sprite(name, px, cls = "") {
 
 /* ---------- decorations ---------- */
 document.getElementById("title-icon").innerHTML = sprite("sparklePink", 4) + sprite("heart", 3);
-document.getElementById("status-icons").innerHTML = sprite("passport", 3) + sprite("heart", 3) + sprite("sparkle", 3);
-document.getElementById("field-deco").innerHTML = sprite("heart", 3) + sprite("sparkle", 3);
+document.getElementById("status-icons").innerHTML = sprite("passport", 3) + sprite("tea", 2) + sprite("sparkle", 3);
+document.getElementById("field-deco").innerHTML = sprite("simit", 2) + sprite("heart", 3);
+document.getElementById("ticket-from-icon").innerHTML = sprite("tea", 2);
+document.getElementById("ticket-plane").innerHTML = sprite("plane", 2);
+document.getElementById("ticket-to-icon").innerHTML = sprite("sparklePink", 2);
 
 const DECOS = [
   ["cloud", 5, "6%", "3%", "float"], ["cloud", 4, "70%", "88%", "float hide-sm"], ["cloud", 4, "40%", "-2%", "float hide-sm"],
-  ["plane", 4, "14%", "80%", "fly"], ["train", 4, "93%", "2%", "ride hide-sm"],
+  ["plane", 4, "14%", "80%", "fly"], ["train", 4, "86%", "2%", "ride hide-sm"],
   ["pisa", 5, "58%", "3%", "float hide-sm"], ["eiffel", 5, "56%", "90%", "float hide-sm"],
   ["suitcase", 4, "84%", "86%", "float"], ["tulip", 4, "30%", "93%", "twinkle hide-sm"], ["tulip", 4, "80%", "12%", "twinkle hide-sm"],
   ["heart", 4, "4%", "62%", "float"], ["strawberry", 4, "34%", "4%", "float hide-sm"], ["daisy", 4, "88%", "50%", "twinkle hide-sm"],
   ["sparkle", 4, "18%", "12%", "twinkle"], ["sparkle", 3, "46%", "93%", "twinkle"], ["sparkle", 4, "12%", "85%", "twinkle hide-sm"],
-  ["sparklePink", 4, "26%", "6%", "twinkle hide-sm"], ["sparklePink", 4, "74%", "95%", "twinkle"]
+  ["sparklePink", 4, "26%", "6%", "twinkle hide-sm"], ["sparklePink", 4, "74%", "95%", "twinkle"],
+  // Istanbul, where IGU is
+  ["seagull", 4, "9%", "22%", "fly"], ["seagull", 3, "22%", "70%", "fly hide-sm"], ["seagull", 3, "64%", "6%", "fly hide-sm"],
+  ["simit", 4, "46%", "2%", "float hide-sm"], ["tea", 4, "40%", "93%", "float hide-sm"],
+  ["ferry", 4, "95%", "2%", "ride hide-sm"], ["maiden", 4, "76%", "3%", "float hide-sm"]
 ];
 document.getElementById("decorations").innerHTML = DECOS.map(([name, px, top, left, cls], i) =>
   `<div class="deco ${cls}" style="top:${top};left:${left};animation-delay:${(i % 5) * .5}s">${sprite(name, px)}</div>`).join("");
 
 /* ---------- bunting: pennants in the colours of a few Erasmus+ countries ---------- */
 const FLAGS = [   // [stripes, direction]  v = vertical stripes, h = horizontal
+  [["#e0566a"], "tr"],                        // Türkiye, home of IGU
   [["#4f9a63", "#ffffff", "#e0566a"], "v"],   // Italy
   [["#4e6fc4", "#ffffff", "#e0566a"], "v"],   // France
   [["#3a2433", "#e0566a", "#ffd04d"], "h"],   // Germany
@@ -534,7 +635,6 @@ const FLAGS = [   // [stripes, direction]  v = vertical stripes, h = horizontal
   [["#4f9a63", "#ffffff", "#f39a4a"], "v"],   // Ireland
   [["#ffffff", "#e0566a"], "h"],              // Poland
   [["#3a2433", "#ffd04d", "#e0566a"], "v"],   // Belgium
-  [["#e0566a"], "tr"],                        // Türkiye
   [["#4e6fc4", "#ffffff", "#4e6fc4", "#ffffff", "#4e6fc4"], "h"]  // Greece-like stripes
 ];
 function bunting() {
@@ -563,10 +663,10 @@ function bunting() {
 }
 document.getElementById("bunting").innerHTML = bunting();
 
-/* ---------- chat theme: a pixel skyline of European landmarks at the bottom of the chat ---------- */
+/* ---------- chat theme: a pixel skyline at the bottom of the chat, from IGU's Istanbul to Europe ---------- */
 function skyline() {
   const px = 3, gap = 18;
-  const names = ["galata", "colosseum", "eiffel", "parthenon", "pisa", "gate"];
+  const names = ["maiden", "bridge", "galata", "colosseum", "eiffel", "pisa", "gate"];   // Istanbul, then Europe
   const heights = names.map((n) => SPRITES[n].length * px);
   const H = Math.max(...heights) + 6;
   let x = 10, body = "";
@@ -596,40 +696,60 @@ const sendBtn = document.getElementById("send");
 
 const STRINGS = {
   en: {
-    contact: "Erasmus Advisor Bot", online: "Online", offline: "Offline", send: "Send", yourQuestion: "Your question",
+    contact: "IGU Erasmus Advisor", unofficial: "unofficial", online: "Online", offline: "Offline", send: "Send", yourQuestion: "Your question",
+    ticketFrom: "IGU · Avcılar, Istanbul", ticketTo: "Europe",
     github: "code, evaluation & results on GitHub",
-    footer: "Answers come from the <b>Erasmus+ Programme Guide 2027</b> and <b>Istanbul Gelişim University</b>'s traineeship documents, with the pages they used. A student project, not affiliated with the European Commission: always check with your Erasmus office.",
-    welcome: "ciao! bonjour! merhaba! ✧ ask me anything about Erasmus+, even in a few words. I answer from the EU Programme Guide and IGU's documents with page numbers, and if they don't cover it, I give a tip marked in yellow ♡",
+    footer: "Answers come from the <b>Erasmus+ Programme Guide 2027</b> and <b>Istanbul Gelişim University</b>'s public Erasmus+ guides (2026 project year: study and traineeship), with the pages they used. An <b>unofficial student project</b>: not affiliated with Istanbul Gelişim University or the European Commission. Rules change every year, so always check with IGU's Erasmus office.",
+    welcome: "merhaba! ciao! bonjour! ✧ I help IGU students with Erasmus+: the language exam, selection, grants and more. Short questions are fine. I answer from IGU's guides and the EU guide with page numbers; if they don't cover it, you get a tip marked in yellow ♡",
     groups: [
-      ["📄 answered from the documents, with pages", ["How much monthly grant does IGU pay for a traineeship in Italy?",
-        "Which documents do I need after returning to get the last 20%?", "Is there extra money for travel by train instead of plane?"]],
-      ["✏️ short questions work too", ["can i go to italy?", "visa help?", "how long is erasmus?"]],
+      ["🎓 IGU: exam & selection", ["When is the IGU Erasmus language exam?", "How is the selection score calculated?",
+        "What GPA do I need to apply?", "Who finds the company for an internship?"]],
+      ["📄 grants & documents, with pages", ["How much monthly grant does IGU pay for a traineeship in Italy?",
+        "Which documents do I need after returning to get the last 20%?"]],
+      ["✏️ short questions work too", ["can i go to italy?", "visa help?", "exam exemption?"]],
       ["💭 not in the documents? I'll give a labelled tip", ["what should I pack for Erasmus?", "how do I make friends abroad?"]]
     ],
-    placeholders: ["type your question…", "e.g. can i go to spain?", "e.g. money for train?", "e.g. what should I pack?", "e.g. youth exchange age?"],
-    sources: { "programme-guide-2027": (p) => `EU Guide · p.${p}`, "igu-steps": (p) => `IGU steps · p.${p}`, "igu-slides": (p) => `IGU slides · ${p}` },
+    placeholders: ["type your question…", "e.g. when is the IGU language exam?", "e.g. can i go to spain?", "e.g. minimum GPA?", "e.g. money for train?", "e.g. what should I pack?"],
+    sources: {
+      "programme-guide-2027": (p) => `EU Guide · p.${p}`,
+      "igu-study-2026": (p) => `IGU study guide 2026 · p.${p}`,
+      "igu-internship-2026": (p) => `IGU traineeship guide 2026 · p.${p}`,
+      "igu-portal": (p) => `Application portal guide · p.${p}`,
+      "igu-steps": (p) => `IGU traineeship steps · p.${p}`,
+      "igu-slides": (p) => `IGU orientation slides · ${p}`
+    },
     searchFound: "what the search found", searchedAs: "searched as", score: "score",
     generalTag: "⚠ not from the documents",
-    generalNote: "The guide and the IGU documents don't cover this, so this is a general answer. Please check with your Erasmus office ♡",
+    generalNote: "IGU's guides and the EU guide don't cover this, so this is a general answer. Please check with IGU's Erasmus office ♡",
     noneNote: "(I only answer from the documents, so I won't guess ♡)",
     error: (m) => `oh no, something went wrong (${m}). Try again in a minute?`
   },
   tr: {
-    contact: "Erasmus Danışman Botu", online: "Çevrimiçi", offline: "Çevrimdışı", send: "Gönder", yourQuestion: "Sorun",
+    contact: "İGÜ Erasmus Danışmanı", unofficial: "resmi değil", online: "Çevrimiçi", offline: "Çevrimdışı", send: "Gönder", yourQuestion: "Sorun",
+    ticketFrom: "İGÜ · Avcılar, İstanbul", ticketTo: "Avrupa",
     github: "kod, değerlendirme ve sonuçlar GitHub'da",
-    footer: "Cevaplar <b>Erasmus+ Program Rehberi 2027</b> ve <b>İstanbul Gelişim Üniversitesi</b>'nin staj belgelerinden, kullanılan sayfalarla birlikte gelir. Bir öğrenci projesidir, Avrupa Komisyonu ile bağlantısı yoktur: her zaman Erasmus ofisine danış.",
-    welcome: "ciao! bonjour! merhaba! ✧ Erasmus+ hakkında ne istersen sor, kısa yazman da yeterli. AB Program Rehberi'nden ve İGÜ belgelerinden sayfa numarasıyla cevaplarım; belgelerde yoksa sarıyla işaretli bir tavsiye veririm ♡",
+    footer: "Cevaplar <b>Erasmus+ Program Rehberi 2027</b> ve <b>İstanbul Gelişim Üniversitesi</b>'nin herkese açık Erasmus+ kılavuzlarından (2026 proje yılı: öğrenim ve staj), kullanılan sayfalarla birlikte gelir. <b>Resmi olmayan bir öğrenci projesidir</b>: İstanbul Gelişim Üniversitesi veya Avrupa Komisyonu ile bağlantısı yoktur. Kurallar her yıl değişir, her zaman İGÜ Erasmus ofisine danış.",
+    welcome: "merhaba! ciao! bonjour! ✧ İGÜ öğrencilerine Erasmus+ konusunda yardım ediyorum: dil sınavı, seçim, hibeler ve fazlası. Kısa yazman yeterli. İGÜ kılavuzlarından ve AB rehberinden sayfa numarasıyla cevaplarım; belgelerde yoksa sarıyla işaretli bir tavsiye veririm ♡",
     groups: [
-      ["📄 belgelerden, sayfa numarasıyla", ["İGÜ, İtalya'daki bir staj için aylık ne kadar hibe veriyor?",
-        "Dönüşte hibenin son %20'si için hangi belgeler gerekiyor?", "Uçak yerine trenle gidersem ekstra yol parası var mı?"]],
-      ["✏️ kısa sorular da olur", ["italya'ya gidebilir miyim?", "vize yardımı?", "erasmus ne kadar sürer?"]],
+      ["🎓 İGÜ: sınav ve seçim", ["İGÜ Erasmus dil sınavı ne zaman?", "Seçim puanı nasıl hesaplanıyor?",
+        "Başvuru için not ortalamam kaç olmalı?", "Staj yerini kim buluyor?"]],
+      ["📄 hibe ve belgeler, sayfa numarasıyla", ["İGÜ, İtalya'daki bir staj için aylık ne kadar hibe veriyor?",
+        "Dönüşte hibenin son %20'si için hangi belgeler gerekiyor?"]],
+      ["✏️ kısa sorular da olur", ["italya'ya gidebilir miyim?", "vize yardımı?", "dil sınavı muafiyeti?"]],
       ["💭 belgelerde yok mu? etiketli bir tavsiye veririm", ["Erasmus için bavuluma ne koymalıyım?", "yurt dışında nasıl arkadaş edinirim?"]]
     ],
-    placeholders: ["sorunu yaz…", "örn. ispanya'ya gidebilir miyim?", "örn. tren için para var mı?", "örn. bavula ne koymalı?", "örn. gençlik değişimi yaşı?"],
-    sources: { "programme-guide-2027": (p) => `AB Rehberi · s.${p}`, "igu-steps": (p) => `İGÜ adımlar · s.${p}`, "igu-slides": (p) => `İGÜ slayt · ${p}` },
+    placeholders: ["sorunu yaz…", "örn. İGÜ dil sınavı ne zaman?", "örn. ispanya'ya gidebilir miyim?", "örn. en düşük not ortalaması?", "örn. tren için para var mı?", "örn. bavula ne koymalı?"],
+    sources: {
+      "programme-guide-2027": (p) => `AB Rehberi · s.${p}`,
+      "igu-study-2026": (p) => `İGÜ öğrenim kılavuzu 2026 · s.${p}`,
+      "igu-internship-2026": (p) => `İGÜ staj kılavuzu 2026 · s.${p}`,
+      "igu-portal": (p) => `Başvuru portalı kılavuzu · s.${p}`,
+      "igu-steps": (p) => `İGÜ staj adımları · s.${p}`,
+      "igu-slides": (p) => `İGÜ oryantasyon slaytı · ${p}`
+    },
     searchFound: "aramanın buldukları", searchedAs: "şöyle arandı", score: "puan",
     generalTag: "⚠ belgelerden değil",
-    generalNote: "Rehber ve İGÜ belgeleri bunu kapsamıyor, bu yüzden bu genel bir cevap. Lütfen Erasmus ofisine de danış ♡",
+    generalNote: "İGÜ kılavuzları ve AB rehberi bunu kapsamıyor, bu yüzden bu genel bir cevap. Lütfen İGÜ Erasmus ofisine de danış ♡",
     noneNote: "(Sadece belgelerden cevap veriyorum, tahmin etmem ♡)",
     error: (m) => `eyvah, bir şeyler ters gitti (${m}). Bir dakika sonra tekrar dener misin?`
   }

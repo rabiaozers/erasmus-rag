@@ -28,8 +28,10 @@ NOT_FOUND = {
 }
 LANGUAGE_NAMES = {"en": "English", "tr": "Turkish"}
 
-SYSTEM_PROMPT = """You answer questions about the Erasmus+ programme.
+SYSTEM_PROMPT = """You answer questions about the Erasmus+ programme for students of Istanbul Gelisim University (IGU).
 Answer ONLY with information from the numbered passages below. Do not use your own knowledge.
+Passages from "programme-guide-2027" are the EU rules for everyone; passages whose source starts with "igu-"
+are IGU's own rules (exam, selection, grants). When both answer the question, give IGU's rule and say it is IGU's.
 If the passages do not contain the answer, write "not found" and set "found" to false.
 Keep the answer short (1-4 sentences) and keep exact numbers, amounts and dates as written.
 Write the answer in the same language as the question (the passages are in English; translate what you use).

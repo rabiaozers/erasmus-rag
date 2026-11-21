@@ -1,15 +1,22 @@
-"""Measure retrieval: is the right page among the top-k chunks? Compare retrieval methods."""
+"""Measure retrieval: is the right page among the top-k chunks? Compare retrieval methods.
+
+    python evaluate.py                                      # PostgreSQL, all methods (rerank+rewrite needs the LLM)
+    STORE=memory METHODS=bm25,hybrid,rerank python evaluate.py   # the demo index, no database and no LLM
+"""
+import os
+
 import pandas as pd
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
 from db import PgStore, connect
 from ingest import MODEL_NAME
+from memory_store import MemoryStore
 from metrics import parse_pages
 from rag import rewrite_query
 from retrieval import RERANKER_NAME, BM25Index, retrieve
 
 KS = (1, 3, 5)
-METHODS = ("embedding", "bm25", "hybrid", "rerank", "rerank+rewrite")
+METHODS = tuple(os.getenv("METHODS", "embedding,bm25,hybrid,rerank,rerank+rewrite").split(","))
 
 
 def evaluate(store, model, bm25, reranker, questions, method, verbose=False):
@@ -39,7 +46,10 @@ if __name__ == "__main__":
     questions = pd.read_csv("eval/questions.csv")
     questions = questions[questions["type"] != "none"]        # no correct page to find
     model = SentenceTransformer(MODEL_NAME, device="cpu")
-    store = PgStore(connect())
+    if os.getenv("STORE") == "memory":
+        store = MemoryStore("demo/chunks.json", "demo/embeddings.npy")
+    else:
+        store = PgStore(connect())
     bm25 = BM25Index(store)
     reranker = CrossEncoder(RERANKER_NAME, device="cpu")
 
@@ -52,8 +62,8 @@ if __name__ == "__main__":
     for method, r in results.items():
         print(f"{method:<16}" + "".join(f"  {r[k]:>8.2f}" for k in KS))
 
-    for group in ("short", "turkish"):
+    for group in ("short", "turkish", "igu"):
         subset = questions[questions["type"] == group]
         print(f"\nonly the {len(subset)} {group} questions, recall@5:")
-        for method in ("rerank", "rerank+rewrite"):
+        for method in [m for m in ("rerank", "rerank+rewrite") if m in METHODS]:
             print(f"{method:<16}  {evaluate(store, model, bm25, reranker, subset, method)[5]:.2f}")

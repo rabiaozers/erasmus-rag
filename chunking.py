@@ -1,5 +1,6 @@
-"""Read the Erasmus+ Programme Guide and split it into chunks with page numbers."""
+"""Read the Erasmus+ Programme Guide and the IGU documents and split them into chunks with page numbers."""
 import json
+import re
 
 from pypdf import PdfReader
 
@@ -10,7 +11,27 @@ SOURCES = [
     ("programme-guide-2027", "data/programme-guide.pdf"),          # EU rules (466 pages)
     ("igu-steps", "data/igu-application-steps.pdf"),               # IGU step-by-step guide (9 pages)
     ("igu-slides", "data/igu-documents-ocr.json"),                 # IGU orientation slides, text read with OCR (20 slides)
+    # IGU's own rules for the 2026 project year (English versions, public on udio-k.gelisim.edu.tr).
+    # Only guides: result lists with names or student numbers are never added.
+    ("igu-study-2026", "data/igu-2026-study-guide.pdf"),           # study mobility: dates, exam, selection, grants
+    ("igu-internship-2026", "data/igu-2026-internship-guide.pdf"), # traineeship mobility: same, plus traineeship rules
+    ("igu-portal", "data/igu-application-portal-guide.pdf"),       # how to use the national application portal
 ]
+
+# Letterheads repeated on every page: they add nothing and would make every IGU chunk look alike
+BOILERPLATE = [
+    re.compile(r"Cihangir Mah\..*?erasmus@gelisim\.edu\.tr"),
+    re.compile(r"T\.C\. MINISTRY OF FOREIGN AFFAIRS DIRECTORATE OF EU AFFAIRS TURKISH NATIONAL AGENCY"
+               r"(?: Avrupa Birliği.*?hs01\.kep\.tr)?"),
+]
+
+
+def clean(text):
+    """Join the text into one line and remove the repeated letterheads."""
+    text = " ".join((text or "").split())
+    for pattern in BOILERPLATE:
+        text = pattern.sub(" ", text)
+    return " ".join(text.split())
 
 
 def load_pages(path):
@@ -18,7 +39,7 @@ def load_pages(path):
     reader = PdfReader(path)
     pages = []
     for i, page in enumerate(reader.pages):
-        pages.append({"page": i + 1, "text": page.extract_text()})
+        pages.append({"page": i + 1, "text": clean(page.extract_text())})
     return pages
 
 

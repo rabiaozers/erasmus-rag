@@ -25,23 +25,34 @@ id,question,answer,pages,type
 24,What is the phone number of the Erasmus office at the University of Pisa?,Not in the guide,,none
 25,How much does a room in Pisa cost per month?,Not in the guide,,none
 26,When must I submit my acceptance letter to the IGU Erasmus office?,"No later than July 20, 2026; otherwise it counts as withdrawal",igu-steps:2;igu-slides:8,easy
-27,What happens if I do not attend the orientation meeting?,5 points are deducted from your next Erasmus application,igu-steps:2,easy
-28,How much monthly grant does IGU pay for a traineeship in Italy?,750 EUR per month (1st and 2nd group countries); 600 EUR for 3rd group,igu-slides:15;igu-steps:7,table
+27,What happens if I do not attend the orientation meeting?,5 points are deducted from your next Erasmus application,igu-steps:2;igu-study-2026:7;igu-internship-2026:7,easy
+28,How much monthly grant does IGU pay for a traineeship in Italy?,750 EUR per month (1st and 2nd group countries); 600 EUR for 3rd group,igu-slides:15;igu-steps:7;igu-internship-2026:9,table
 29,When is the Erasmus grant paid?,80% within 3 weeks after the grant agreement is signed and the arrival form is submitted; the remaining 20% after mobility when return documents are submitted,igu-steps:4;igu-slides:15,number
 30,Does the IGU Erasmus office help with my visa?,"No, the visa is the student's responsibility; the office only prepares a visa facilitation (sponsorship) letter within 7 days",igu-steps:3;igu-slides:17,partial
 31,Which bank account do I need for the grant?,A EURO account in your own name at Ziraat Katilim Bank,igu-steps:4;igu-slides:17,easy
 32,Which documents do I need for the grant agreement?,"Insurance policy, bank account details, scanned passport and visa, plane ticket copy, acceptance letter and LA",igu-steps:4,list
 33,What insurance do I need for my traineeship?,Accident insurance and travel health insurance including personal liability,igu-steps:3,easy
 34,Which documents do I need after returning to receive the final 20% of the grant?,"Certificate of attendance, LA after mobility, passport entry/exit stamps, EU participant survey",igu-slides:19,list
-35,can i go to italy,"Yes: Italy is a Group 1 country (EU Member State), and IGU lists it in its 1st/2nd group for grants",programme-guide-2027:80;igu-steps:7,short
-36,italy grant igu,750 EUR per month for a traineeship (600 EUR for studies),igu-slides:15;igu-steps:7,short
+35,can i go to italy,"Yes: Italy is a Group 1 country (EU Member State), and IGU lists it in its 1st/2nd group for grants",programme-guide-2027:80;igu-steps:7;igu-study-2026:9;igu-internship-2026:9,short
+36,italy grant igu,750 EUR per month for a traineeship (600 EUR for studies),igu-slides:15;igu-steps:7;igu-study-2026:9;igu-internship-2026:9,short
 37,visa help?,The visa is the participant's responsibility; the IGU office prepares a visa facilitation letter,programme-guide-2027:38;igu-steps:3;igu-slides:17,short
 38,youth exchange age,13 to 30,programme-guide-2027:158,short
 39,money for train?,"Travel support by distance band; green travel (train, bus) gets more than plane",programme-guide-2027:76,short
 40,acceptance letter deadline,"July 20, 2026",igu-steps:2;igu-slides:8,short
 41,how long is erasmus,Studies and traineeships: 2 to 12 months,programme-guide-2027:67,short
-42,"İGÜ, İtalya'daki bir staj için aylık ne kadar hibe veriyor?",750 EUR / ayda,igu-slides:15;igu-steps:7,turkish
+42,"İGÜ, İtalya'daki bir staj için aylık ne kadar hibe veriyor?",750 EUR / ayda,igu-slides:15;igu-steps:7;igu-internship-2026:9,turkish
 43,Vize konusunda okul yardım ediyor mu?,Vize öğrencinin sorumluluğu; ofis vize kolaylaştırma (sponsorluk) mektubu hazırlar,igu-steps:3;igu-slides:17,turkish
 44,Gençlik değişimi kaç gün sürer?,5-21 gün (yol günleri hariç),programme-guide-2027:157,turkish
 45,Kabul mektubunu ne zamana kadar teslim etmeliyim?,En geç 20 Temmuz 2026,igu-steps:2;igu-slides:8,turkish
 46,Hangi sigortayı yaptırmalıyım?,Kaza sigortası ve şahsi sorumluluk dahil seyahat sağlık sigortası,igu-steps:3,turkish
+47,When is the IGU Erasmus+ foreign language exam in 2026?,"11 March 2026 (test and writing parts, by the IGU School of Foreign Languages)",igu-study-2026:3;igu-internship-2026:3,igu
+48,What score do I need to pass the IGU Erasmus language exam?,At least 60 out of 100,igu-study-2026:3;igu-internship-2026:3,igu
+49,How is the Erasmus selection score calculated at IGU?,"50% GPA + 50% language score; the Grand Total must be at least 60/100, plus bonus points and deductions",igu-study-2026:6;igu-internship-2026:7,igu
+50,What is the minimum GPA to apply for Erasmus at IGU as a bachelor's student?,2.20/4.00 (3.00/4.00 for master's and doctoral students),igu-study-2026:5;igu-internship-2026:5,igu
+51,Can final-year students apply for Erasmus study mobility at IGU?,"No, final-year students cannot apply for study mobility",igu-study-2026:5,igu
+52,Who has to find the company for an IGU Erasmus internship?,"The student finds the internship place, and it must be related to their field of study",igu-internship-2026:6,igu
+53,Do I need an acceptance letter to apply for IGU internship mobility?,"No, but uploading one during the application gives +10 points",igu-internship-2026:6,igu
+54,For how many months does IGU pay the internship grant?,Up to 2 months; the student may continue without a grant afterwards,igu-internship-2026:4,igu
+55,What happens if I apply for both study and internship mobility at IGU?,"A -10 point deduction, applied to the type of mobility the student prefers",igu-study-2026:4;igu-study-2026:7;igu-internship-2026:7,igu
+56,İGÜ'de Erasmus dil sınavından muaf olabilir miyim?,"Evet: YDS, YÖKDİL veya ÖSYM'nin kabul ettiği uluslararası bir sınavdan en az 60 alan öğrenci belgesini yükleyip muaf olur",igu-study-2026:3;igu-study-2026:6;igu-internship-2026:3,igu
+57,Dil sınavına gireceğimi söyleyip girmezsem ne olur?,Bir sonraki başvuruda 5 puan düşülür,igu-study-2026:3;igu-study-2026:7;igu-internship-2026:3,igu

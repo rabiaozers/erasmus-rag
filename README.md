@@ -1,14 +1,18 @@
-# Erasmus+ Assistant (RAG)
+# IGU Erasmus Advisor: an Erasmus+ assistant (RAG)
 
-Ask questions about the Erasmus+ programme (studies, traineeships, youth exchanges, staff mobility, partnerships, grants), in English or Turkish, even in a few words ("visa help?"), and get short answers **with page citations**. It answers from the whole EU Programme Guide, plus my university's own traineeship documents. When the documents do not cover a question, it says so and gives a short general tip, clearly labelled as not coming from the documents.
+An unofficial Erasmus+ assistant for students of my university, Istanbul Gelişim University (IGU). Ask about IGU's Erasmus language exam, the selection score, the minimum GPA, grants, or anything else in the Erasmus+ programme, in English or Turkish, even in a few words ("visa help?"), and get short answers **with page citations**. Every university runs its own selection (its own exam, score formula and deadlines), so the assistant answers from IGU's own public guides as well as the whole EU Programme Guide. When the documents do not cover a question, it says so and gives a short general tip, clearly labelled as not coming from the documents.
 
 | Source | What it covers | Size |
 |---|---|---|
 | Erasmus+ Programme Guide 2027 (EU) | rules, grant ranges, durations, eligibility | 466 pages |
 | Istanbul Gelişim University (IGU) step-by-step guide | what the student has to do before, during and after the traineeship | 9 pages |
 | IGU orientation slides | grant amounts, documents, deadlines (slides are images, read with OCR) | 20 slides |
+| IGU 2026 study mobility guide | application dates, language exam, selection score, who cannot apply, grants | 13 pages |
+| IGU 2026 traineeship mobility guide | the same for traineeships, plus traineeship rules (who finds the company, acceptance letter bonus) | 12 pages |
+| Application portal guide (translated by IGU) | how to fill in the national online application | 17 pages |
 
-**Live demo:** [erasmus-assistant.streamlit.app](https://erasmus-assistant.streamlit.app) (a chat page I designed in pastel pixel-art style with a European theme; the free server sleeps when idle, so the first visit takes a minute)
+The IGU guides are for the 2026 project year, so the source labels on the page show the year; they have to be replaced when IGU publishes the next call. Only guides are used: result lists, which contain names and student numbers, are never added.
+**Live demo:** [erasmus-assistant.streamlit.app](https://erasmus-assistant.streamlit.app) (a chat page I designed in pastel pixel-art style, from Istanbul to Europe: the Maiden's Tower, the Bosphorus Bridge and Galata next to the Colosseum and the Eiffel Tower; the free server sleeps when idle, so the first visit takes a minute)
 
 <!-- demo GIF: ![demo](demo.gif) -->
 
@@ -105,6 +109,20 @@ Two fixes came from reading the answers, not from the metrics:
 
 <!-- RESULTS_JUDGE -->
 
+**7. Making it IGU's assistant.** Erasmus selection differs from school to school, so I added IGU's public 2026 guides for study and traineeship mobility (English versions) and 11 IGU questions to the evaluation set (exam date, passing score, score formula, minimum GPA, who finds the company, acceptance letter bonus, ...). Two changes came with them:
+
+- The repeated letterhead on every page (address, phone, e-mail) is removed before chunking ([chunking.py](chunking.py)); otherwise every IGU chunk starts with the same 30 words and they all look alike to the search.
+- The reranker now keeps **one chunk per page**. The study and traineeship guides share whole paragraphs, so the top 5 was often the same page twice and the same rule from both guides, pushing the EU guide out.
+
+Retrieval with the reranker (no query rewriting, measured on the demo index):
+
+| | IGU questions (11) | earlier questions (43) |
+|---|---|---|
+| old index, old reranker | - | 0.60 |
+| old index, one chunk per page | - | 0.63 |
+| **with the IGU guides, one chunk per page** | **0.82** | 0.58 |
+
+All 9 English IGU questions find the right page; the 2 Turkish ones need the rewriting step, which translates them on the live site. The cost: two general questions ("How much is the Erasmus+ grant for studies?", "How many days can I stay on Erasmus?") now get IGU pages about IGU's grants and durations instead of the EU guide's ranges. For an IGU student that is often the more useful answer, but it is not the page my reference expects, so I count it as a miss. The LLM is told which passages are IGU's own rules, so it says when a rule is IGU's.
 The judge (gpt-oss-120b) also grades its own model's answers and may be too kind to itself, so I checked a sample of its verdicts by hand.
 
 ## Known weaknesses
@@ -112,6 +130,7 @@ The judge (gpt-oss-120b) also grades its own model's answers and may be too kind
 - **Retrieval caps everything.** recall@5 is 0.71, so for about 9 of 31 questions the right page never reaches the LLM. Questions whose answer is spread over several pages (how the grant is calculated) or sits in a table (travel distance bands) are the hardest.
 - **A 3B model misreads tables and mixes up programmes**, e.g. it answered "up to 24 months" for a study period (correct: 2-12 months). A larger model would help but does not fit in 4 GB of VRAM.
 - **Text extraction noise:** the IGU slides are images, and tesseract misread some numbers in the travel table. The IGU step-by-step PDF loses some letters on extraction ("Zraat", "vsa" instead of "Ziraat", "visa"), which also hurts keyword search for those words.
+- **Rules change every year:** the IGU guides are for the 2026 project year. The page shows the year in every source label and tells students to check with IGU's Erasmus office.
 - **Small evaluation set:** with 31 questions one question is 3 percentage points, so small differences are not significant.
 - The key-number check is strict (every number of the expected answer must appear) and some correct but shorter answers fail it; I also read the answers by hand.
 
@@ -123,6 +142,8 @@ Requirements: Docker Desktop, [Ollama](https://ollama.com), Python 3.12+.
 # 1. Documents (not in the repository)
 #    data/programme-guide.pdf       from https://erasmus-plus.ec.europa.eu/programme-guide/erasmusplus-programme-guide
 #    data/igu-application-steps.pdf and data/igu-documents-ocr.json  (IGU documents, available to IGU students)
+#    data/igu-2026-study-guide.pdf, data/igu-2026-internship-guide.pdf, data/igu-application-portal-guide.pdf
+#                                    (IGU's public 2026 Erasmus+ guides, linked from udio-k.gelisim.edu.tr)
 
 # 2. Database and LLM
 docker compose up -d db
@@ -132,6 +153,8 @@ ollama pull qwen2.5:3b
 pip install -r requirements.txt
 python ingest.py            # ~2 min on CPU: 1,861 chunks into pgvector
 python evaluate.py          # retrieval recall@k for every method
+#   STORE=memory METHODS=hybrid,rerank python evaluate.py   -> same, on the demo index (no database, no LLM)
+#   python build_index.py   -> rebuild the demo index straight from data/, without PostgreSQL
 python eval_answers.py      # answers to all 34 questions -> eval/answers_<model>.csv
 
 # 4. Chat page at http://localhost:8000 (API docs at /docs)
@@ -151,11 +174,11 @@ docker compose up --build
 | `rag.py` | prompt, Ollama call with a JSON schema, citations |
 | `app.py` | FastAPI: chat page at `/`, `POST /ask`, `GET /health` |
 | `web/index.html` | the chat page: HTML, CSS and JavaScript, English and Turkish, with pixel-art sprites (landmarks, flags) drawn in code |
-| `memory_store.py`, `export_index.py` | the demo keeps chunks and embeddings in memory instead of PostgreSQL |
+| `memory_store.py`, `export_index.py`, `build_index.py` | the demo keeps chunks and embeddings in memory instead of PostgreSQL |
 | `demo/app.py` | the public demo on Streamlit Community Cloud: the same chat page runs as a Streamlit component, Python answers with the same retrieval code, the LLM runs on Groq |
 | `evaluate.py`, `eval_answers.py`, `metrics.py` | retrieval and answer evaluation |
 | `judge.py` | the auditor: an LLM grades answer correctness and groundedness |
-| `eval/questions.csv` | 34 questions with answers and correct pages |
+| `eval/questions.csv` | 57 questions with answers and correct pages (types: easy, number, table, list, partial, none, short, turkish, igu) |
 | `tests/` | unit tests (chunking, RRF, tokenizer, metrics), run by GitHub Actions |
 
-The IGU documents belong to Istanbul Gelişim University's International Exchange and Cooperation Office and are not included in this repository.
+The IGU documents belong to Istanbul Gelişim University's International Exchange and Cooperation Office and are not included in this repository. This is a student project, not an official IGU or European Commission service.
