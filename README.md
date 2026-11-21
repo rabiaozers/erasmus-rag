@@ -10,8 +10,11 @@ An unofficial Erasmus+ assistant for students of my university, Istanbul Gelişi
 | IGU 2026 study mobility guide | application dates, language exam, selection score, who cannot apply, grants | 13 pages |
 | IGU 2026 traineeship mobility guide | the same for traineeships, plus traineeship rules (who finds the company, acceptance letter bonus) | 12 pages |
 | Application portal guide (translated by IGU) | how to fill in the national online application | 17 pages |
+| IGU Erasmus exam subjects (2019) | what each part of IGU's English exam tests | 2 pages |
 
 The IGU guides are for the 2026 project year, so the source labels on the page show the year; they have to be replaced when IGU publishes the next call. Only guides are used: result lists, which contain names and student numbers, are never added.
+**Exam practice:** the page also has a "study for the exam" screen for IGU's Erasmus English exam: what IGU's guides say about the exam (with pages) and how its format changed over the years, a study checklist, a 20-question practice test in the question types of IGU's sample exam (two-blank tense questions, a reading passage, the irrelevant sentence, same meaning, completing a paragraph) with an explanation in English and Turkish after every question, and a writing task with a word counter and feedback from the LLM (a rough CEFR level and concrete corrections, clearly labelled as not a grade). The 50 practice questions are my own; they are not IGU's questions.
+
 **Live demo:** [erasmus-assistant.streamlit.app](https://erasmus-assistant.streamlit.app) (a chat page I designed in pastel pixel-art style, from Istanbul to Europe: the Maiden's Tower, the Bosphorus Bridge and Galata next to the Colosseum and the Eiffel Tower; the free server sleeps when idle, so the first visit takes a minute)
 
 <!-- demo GIF: ![demo](demo.gif) -->
@@ -172,13 +175,14 @@ docker compose up --build
 | `db.py` | table schema, pgvector search, PostgreSQL full-text search |
 | `retrieval.py` | BM25, Reciprocal Rank Fusion, reranker |
 | `rag.py` | prompt, Ollama call with a JSON schema, citations |
-| `app.py` | FastAPI: chat page at `/`, `POST /ask`, `GET /health` |
+| `app.py` | FastAPI: chat page at `/`, `POST /ask`, `POST /writing-feedback`, `GET /health` |
 | `web/index.html` | the chat page: HTML, CSS and JavaScript, English and Turkish, with pixel-art sprites (landmarks, flags) drawn in code |
+| `web/exam.js` | the exam practice screen: exam info, study checklist, practice test (question pool), writing task |
 | `memory_store.py`, `export_index.py`, `build_index.py` | the demo keeps chunks and embeddings in memory instead of PostgreSQL |
 | `demo/app.py` | the public demo on Streamlit Community Cloud: the same chat page runs as a Streamlit component, Python answers with the same retrieval code, the LLM runs on Groq |
 | `evaluate.py`, `eval_answers.py`, `metrics.py` | retrieval and answer evaluation |
 | `judge.py` | the auditor: an LLM grades answer correctness and groundedness |
-| `eval/questions.csv` | 57 questions with answers and correct pages (types: easy, number, table, list, partial, none, short, turkish, igu) |
-| `tests/` | unit tests (chunking, RRF, tokenizer, metrics), run by GitHub Actions |
+| `eval/questions.csv` | 59 questions with answers and correct pages (types: easy, number, table, list, partial, none, short, turkish, igu) |
+| `tests/` | unit tests (chunking, RRF, tokenizer, metrics) and a check of every practice question (`node tests/test_exam.js`), run by GitHub Actions |
 
 The IGU documents belong to Istanbul Gelişim University's International Exchange and Cooperation Office and are not included in this repository. This is a student project, not an official IGU or European Commission service.

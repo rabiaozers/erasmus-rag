@@ -56,3 +56,5 @@ id,question,answer,pages,type
 55,What happens if I apply for both study and internship mobility at IGU?,"A -10 point deduction, applied to the type of mobility the student prefers",igu-study-2026:4;igu-study-2026:7;igu-internship-2026:7,igu
 56,İGÜ'de Erasmus dil sınavından muaf olabilir miyim?,"Evet: YDS, YÖKDİL veya ÖSYM'nin kabul ettiği uluslararası bir sınavdan en az 60 alan öğrenci belgesini yükleyip muaf olur",igu-study-2026:3;igu-study-2026:6;igu-internship-2026:3,igu
 57,Dil sınavına gireceğimi söyleyip girmezsem ne olur?,Bir sonraki başvuruda 5 puan düşülür,igu-study-2026:3;igu-study-2026:7;igu-internship-2026:3,igu
+58,What does the reading part of IGU's Erasmus exam test?,"Understanding the main idea and details, guessing word meanings from the passage, and making inferences",igu-exam-subjects:1;igu-exam-subjects:2,igu
+59,İGÜ Erasmus sınavının yazma bölümünde kaç kelime yazmalıyım?,En az 180-200 kelime; günlük hayattan tanıdık bir konuda deneme,igu-exam-subjects:1;igu-exam-subjects:2,igu

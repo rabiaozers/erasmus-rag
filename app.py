@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
-from rag import LLM_MODEL, answer
+from rag import LLM_MODEL, answer, writing_feedback
 from retrieval import EMBEDDING_MODEL, RERANKER_NAME, BM25Index
 
 HERE = Path(__file__).parent
@@ -45,6 +45,12 @@ class AskRequest(BaseModel):
     lang: str = Field("en", pattern="^(en|tr)$")          # language of the page
 
 
+class WritingRequest(BaseModel):
+    task: str = Field(min_length=3, max_length=500)
+    text: str = Field(min_length=20, max_length=4000)
+    lang: str = Field("en", pattern="^(en|tr)$")
+
+
 class Source(BaseModel):
     source: str
     page: int
@@ -70,6 +76,12 @@ def root():
     return FileResponse(HERE / "web" / "index.html")
 
 
+@app.get("/exam.js", include_in_schema=False)
+def exam_script():
+    """The exam practice screen (questions, topics, writing tasks) used by the chat page."""
+    return FileResponse(HERE / "web" / "exam.js", media_type="text/javascript")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "chunks": len(state["store"].all_chunks()), "llm": LLM_MODEL}
@@ -81,3 +93,12 @@ def ask(request: AskRequest):
         return answer(state["store"], state["model"], state["bm25"], state["reranker"], request.question, request.lang)
     except Exception as error:          # e.g. Ollama is not running
         raise HTTPException(status_code=503, detail=f"Could not answer: {error}") from error
+
+
+@app.post("/writing-feedback")
+def writing(request: WritingRequest):
+    """Feedback on a practice essay from the exam screen (a rough level and concrete corrections, not a grade)."""
+    try:
+        return {"feedback": writing_feedback(request.task, request.text, request.lang)}
+    except Exception as error:
+        raise HTTPException(status_code=503, detail=f"Could not give feedback: {error}") from error

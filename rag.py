@@ -155,6 +155,24 @@ def general_answer(question):
     return chat(FALLBACK_PROMPT, question).strip()
 
 
+WRITING_PROMPT = """You are an English teacher helping a university student practise the writing part of an
+Erasmus+ English exam (about CEFR B2). Read the task and the student's text and give short, kind, concrete feedback.
+Write your feedback in {language}; keep quotations from the text and corrected sentences in English.
+Use exactly these parts, as plain text lines (no markdown tables, no headings with #):
+Level: a rough CEFR guess (e.g. B1+) and one sentence why. Say it is only an estimate.
+Good: 2 short points about what works.
+Fix: up to 5 mistakes, each as: "original" -> "corrected" (short reason).
+Next time: one tip for structure or vocabulary.
+If the text is not in English or does not answer the task, say so kindly. Do not write a new essay for the student."""
+
+
+def writing_feedback(task, text, lang="en"):
+    """Feedback on a practice essay for the exam screen. Not a grade: a rough level and concrete fixes."""
+    language = "Turkish" if lang == "tr" else "English"
+    user = f"Task: {task}\n\nStudent's text ({len(text.split())} words):\n{text}"
+    return chat(WRITING_PROMPT.format(language=language), user).strip()
+
+
 def answer(store, model, bm25, reranker, question, lang="en"):
     """Full RAG pipeline: rewrite -> retrieve -> rerank -> generate (-> labelled fallback).
     answer_type is "documents" (cited answer), "general" (labelled, not from the documents) or "none".

@@ -34,7 +34,7 @@ import retrieval  # noqa: E402
 for module in (retrieval, memory_store, rag):
     importlib.reload(module)
 from memory_store import MemoryStore  # noqa: E402
-from rag import LLM_MODEL, answer  # noqa: E402
+from rag import LLM_MODEL, answer, writing_feedback  # noqa: E402
 from retrieval import EMBEDDING_MODEL, RERANKER_NAME, BM25Index  # noqa: E402
 
 st.set_page_config(page_title="IGU Erasmus Advisor (unofficial)", page_icon="🌸", layout="wide")
@@ -80,11 +80,18 @@ request = chat(
 if request and request.get("id") != st.session_state.get("answered_id"):
     st.session_state["answered_id"] = request["id"]
     question = str(request.get("question", "")).strip()[:500]
-    if len(question) < 3:
+    lang = request.get("lang") if request.get("lang") in ("en", "tr") else "en"
+    if request.get("kind") == "writing":            # the exam screen asks for feedback on a practice essay
+        text = str(request.get("text", "")).strip()[:4000]
+        try:
+            result = {"feedback": writing_feedback(question, text, lang)} if len(text.split()) >= 5 \
+                else {"error": "Please write a few sentences first."}
+        except Exception as error:
+            result = {"error": f"no feedback right now: {error}"[:300]}
+    elif len(question) < 3:
         result = {"error": "Please write a slightly longer question."}
     else:
         try:
-            lang = request.get("lang") if request.get("lang") in ("en", "tr") else "en"
             result = answer(store, model, bm25, reranker, question, lang)
         except Exception as error:                  # e.g. the free LLM API is busy
             result = {"error": f"the assistant could not answer right now: {error}"[:300]}

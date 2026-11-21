@@ -16,6 +16,7 @@ SOURCES = [
     ("igu-study-2026", "data/igu-2026-study-guide.pdf"),           # study mobility: dates, exam, selection, grants
     ("igu-internship-2026", "data/igu-2026-internship-guide.pdf"), # traineeship mobility: same, plus traineeship rules
     ("igu-portal", "data/igu-application-portal-guide.pdf"),       # how to use the national application portal
+    ("igu-exam-subjects", "data/exam/igu-exam-subjects-2019.pdf"),  # what each part of IGU's Erasmus exam tests (TR + EN)
 ]
 
 # Letterheads repeated on every page: they add nothing and would make every IGU chunk look alike

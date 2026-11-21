@@ -21,6 +21,7 @@
     --shadow: #c9a3d9;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { margin: 0; min-height: 100%; }
   html, body { overflow-x: hidden; }
   #decorations { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
@@ -169,6 +170,66 @@
   .suggestions button:hover { background: #fff0f7; }
   .suggestions button:active { transform: translateY(3px); box-shadow: none; }
 
+  /* chat / exam switch */
+  .modes { display: flex; gap: 6px; margin: 2px 0 8px; }
+  .modes button {
+    flex: 1; font-family: inherit; font-size: 15px; color: var(--ink); cursor: pointer;
+    background: var(--pink-paler); border: 3px solid var(--ink); border-radius: 10px; padding: 5px 8px;
+    box-shadow: 0 3px 0 var(--ink);
+  }
+  .modes button[aria-selected="true"] { background: #fff4c2; transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+  .suggestions button.cta { background: #fff4c2; font-weight: 600; }
+
+  /* exam practice screen */
+  .exam {
+    height: clamp(380px, 62vh, 640px); overflow-y: auto;
+    border: 3px solid var(--ink); border-radius: 12px; background: var(--cream);
+    padding: 12px; font-size: 15px; line-height: 1.4;
+  }
+  html.in-streamlit .exam { height: 560px; }
+  .exam::-webkit-scrollbar { width: 10px; }
+  .exam::-webkit-scrollbar-thumb { background: var(--pink); border: 2px solid var(--ink); border-radius: 6px; }
+  .exam h2 { margin: 0 0 8px; font-size: 20px; color: var(--pink-deep); display: flex; align-items: center; gap: 6px; }
+  .exam h3 { margin: 12px 0 6px; font-size: 16px; }
+  .exam .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .exam .tabs button, .exam .btn {
+    font-family: inherit; font-size: 14px; color: var(--ink); cursor: pointer;
+    background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 3px 10px; box-shadow: 0 2px 0 var(--ink);
+  }
+  .exam .tabs button[aria-selected="true"] { background: var(--pink); color: #fff; }
+  .exam .btn.main { background: #ff7fb3; color: #fff; font-weight: 600; font-size: 16px; padding: 5px 14px; }
+  .exam .btn:disabled { opacity: .5; cursor: wait; }
+  .exam .card { background: #fff; border: 2px solid var(--ink); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
+  .exam .card.note { background: #fff4c2; }
+  .exam .src { display: inline-block; font-size: 12px; background: var(--lilac); border: 1.5px solid var(--ink); border-radius: 6px; padding: 0 6px; margin: 2px 2px 0 0; }
+  .exam table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 4px; }
+  .exam th, .exam td { border: 1.5px solid var(--ink); padding: 2px 6px; text-align: left; }
+  .exam th { background: var(--pink-paler); }
+  .exam .topic { display: flex; gap: 6px; align-items: flex-start; margin: 3px 0; cursor: pointer; }
+  .exam .topic input { margin-top: 3px; accent-color: #e0569a; }
+  .exam .bar { height: 12px; border: 2px solid var(--ink); border-radius: 6px; background: #fff; overflow: hidden; margin: 4px 0 8px; }
+  .exam .bar span { display: block; height: 100%; background: #6ccf7f; }
+  .exam .passage { background: #f6f1ff; border: 2px dashed var(--ink); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; font-size: 14px; }
+  .exam .q { font-size: 17px; margin: 6px 0 10px; }
+  .exam .opts { display: grid; gap: 6px; }
+  .exam .opts button {
+    text-align: left; font-family: inherit; font-size: 15px; color: var(--ink); cursor: pointer;
+    background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 6px 10px;
+  }
+  .exam .opts button.right { background: #c9f2cf; }
+  .exam .opts button.wrong { background: #ffd0d8; }
+  .exam .opts button:disabled { cursor: default; }
+  .exam .explain { margin-top: 8px; }
+  .exam .meta { display: flex; justify-content: space-between; font-size: 13px; opacity: .85; }
+  .exam .big { font-size: 34px; font-weight: 600; color: var(--pink-deep); }
+  .exam textarea {
+    width: 100%; min-height: 160px; font-family: inherit; font-size: 15px; color: var(--ink);
+    border: 2px solid var(--ink); border-radius: 8px; padding: 8px; background: #fff; resize: vertical;
+  }
+  .exam .feedback { white-space: pre-wrap; }
+  .exam a { color: var(--pink-deep); }
+  .exam ul { margin: 4px 0; padding-left: 20px; }
+
   .typing { display: flex; gap: 6px; padding: 4px 2px; }
   .dot { width: 9px; height: 9px; background: #fff; border: 2px solid var(--ink); animation: hop 1s infinite; }
   .dot:nth-child(2) { animation-delay: .15s; } .dot:nth-child(3) { animation-delay: .3s; }
@@ -212,6 +273,7 @@
     .field .deco-box { display: none; }
     .statusbar { font-size: 14px; }
     .statusbar .icons { display: none; }
+    .modes button { font-size: 13px; padding: 4px 4px; }
     .titlebar h1 { font-size: 19px; white-space: nowrap; }
     .ticket { font-size: 12px; padding: 3px 6px; }
   }
@@ -242,7 +304,12 @@
     <span class="where" data-i18n="ticketTo">Europe</span><span id="ticket-to-icon"></span>
   </div>
   <div class="bunting" id="bunting" aria-hidden="true"></div>
+  <div class="modes" role="tablist" aria-label="Mode">
+    <button type="button" role="tab" id="mode-chat" aria-selected="true" data-i18n="modeChat">💬 chat</button>
+    <button type="button" role="tab" id="mode-exam" aria-selected="false" data-i18n="modeExam">📝 study for the exam</button>
+  </div>
   <section class="chat" id="chat" aria-live="polite"></section>
+  <section class="exam" id="exam" hidden></section>
 
   <form class="composer" id="composer" autocomplete="off">
     <label class="sr-only" for="question" data-i18n="yourQuestion">Your question</label>
@@ -696,6 +763,7 @@ const sendBtn = document.getElementById("send");
 
 const STRINGS = {
   en: {
+    modeChat: "💬 chat", modeExam: "📝 study for the exam", examCta: "📝 Study for IGU's Erasmus language exam: info, topics, practice test →",
     contact: "IGU Erasmus Advisor", unofficial: "unofficial", online: "Online", offline: "Offline", send: "Send", yourQuestion: "Your question",
     ticketFrom: "IGU · Avcılar, Istanbul", ticketTo: "Europe",
     github: "code, evaluation & results on GitHub",
@@ -715,6 +783,7 @@ const STRINGS = {
       "igu-study-2026": (p) => `IGU study guide 2026 · p.${p}`,
       "igu-internship-2026": (p) => `IGU traineeship guide 2026 · p.${p}`,
       "igu-portal": (p) => `Application portal guide · p.${p}`,
+      "igu-exam-subjects": (p) => `IGU exam subjects (2019) · p.${p}`,
       "igu-steps": (p) => `IGU traineeship steps · p.${p}`,
       "igu-slides": (p) => `IGU orientation slides · ${p}`
     },
@@ -725,6 +794,7 @@ const STRINGS = {
     error: (m) => `oh no, something went wrong (${m}). Try again in a minute?`
   },
   tr: {
+    modeChat: "💬 sohbet", modeExam: "📝 sınava çalış", examCta: "📝 İGÜ Erasmus dil sınavına çalış: bilgiler, konular, deneme testi →",
     contact: "İGÜ Erasmus Danışmanı", unofficial: "resmi değil", online: "Çevrimiçi", offline: "Çevrimdışı", send: "Gönder", yourQuestion: "Sorun",
     ticketFrom: "İGÜ · Avcılar, İstanbul", ticketTo: "Avrupa",
     github: "kod, değerlendirme ve sonuçlar GitHub'da",
@@ -744,6 +814,7 @@ const STRINGS = {
       "igu-study-2026": (p) => `İGÜ öğrenim kılavuzu 2026 · s.${p}`,
       "igu-internship-2026": (p) => `İGÜ staj kılavuzu 2026 · s.${p}`,
       "igu-portal": (p) => `Başvuru portalı kılavuzu · s.${p}`,
+      "igu-exam-subjects": (p) => `İGÜ sınav konuları (2019) · s.${p}`,
       "igu-steps": (p) => `İGÜ staj adımları · s.${p}`,
       "igu-slides": (p) => `İGÜ oryantasyon slaytı · ${p}`
     },
@@ -777,6 +848,10 @@ function addMessage(who, html, extraClass = "") {
 function showSuggestions() {
   const box = document.createElement("div");
   box.className = "suggestions";
+  const cta = document.createElement("button");                 // opens the exam practice screen
+  cta.type = "button"; cta.className = "cta"; cta.textContent = t("examCta");
+  cta.onclick = () => setMode("exam");
+  box.appendChild(cta);
   t("groups").forEach(([title, questions]) => {
     const head = document.createElement("div");
     head.className = "group-title"; head.textContent = title;
@@ -826,19 +901,22 @@ function setOffline() {
   document.getElementById("status-text").textContent = t("offline");
 }
 
-async function requestAnswer(question) {
+/* one request to the backend: `endpoint` for FastAPI, `value` is the JSON body (Streamlit gets it with an id) */
+async function callBackend(endpoint, value) {
   if (!IN_STREAMLIT) {
-    const res = await fetch("ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, lang }) });
-    if (!res.ok) throw new Error(res.status === 422 ? "Please write a slightly longer question." : `server said ${res.status}`);
+    const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
+    if (!res.ok) throw new Error(res.status === 422 ? "Please write a little more." : `server said ${res.status}`);
     return res.json();
   }
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return new Promise((resolve, reject) => {
     waiting.set(id, (r) => (r.error ? reject(new Error(r.error)) : resolve(r)));
-    toStreamlit("streamlit:setComponentValue", { value: { id, question, lang }, dataType: "json" });
+    toStreamlit("streamlit:setComponentValue", { value: { id, ...value }, dataType: "json" });
     setTimeout(() => { if (waiting.delete(id)) reject(new Error("no answer after 2 minutes")); }, 120000);
   });
 }
+const requestAnswer = (question) => callBackend("ask", { question, lang });
+const requestWritingFeedback = (task, text) => callBackend("writing-feedback", { kind: "writing", question: task, task, text, lang });
 
 function showAnswer(data) {
   const searched = data.search_query && data.search_query.toLowerCase() !== data.question.toLowerCase()
@@ -883,6 +961,22 @@ form.addEventListener("submit", (e) => {
   ask(q);
 });
 
+/* ---------- chat or exam practice ---------- */
+let mode = "chat";
+function setMode(next) {
+  mode = next;
+  const exam = document.getElementById("exam");
+  chat.hidden = next !== "chat";
+  form.hidden = next !== "chat";
+  exam.hidden = next !== "exam";
+  document.getElementById("mode-chat").setAttribute("aria-selected", String(next === "chat"));
+  document.getElementById("mode-exam").setAttribute("aria-selected", String(next === "exam"));
+  if (next === "exam" && window.ExamPractice) window.ExamPractice.open(exam);
+  resizeFrame();
+}
+document.getElementById("mode-chat").addEventListener("click", () => setMode("chat"));
+document.getElementById("mode-exam").addEventListener("click", () => setMode("exam"));
+
 /* ---------- language ---------- */
 function applyLang() {
   document.documentElement.lang = lang;
@@ -893,6 +987,7 @@ function applyLang() {
   if (online !== null) document.getElementById("status-text").textContent = t(online ? "online" : "offline");
   // start a fresh chat in the new language: welcome message and example questions
   chat.innerHTML = ""; addMessage("bot", t("welcome")); showSuggestions();
+  if (mode === "exam" && window.ExamPractice) window.ExamPractice.open(document.getElementById("exam"));
   resizeFrame();
 }
 document.querySelectorAll(".langs button").forEach((b) => b.addEventListener("click", () => {
@@ -920,5 +1015,6 @@ if (IN_STREAMLIT) {
   fetch("health").then((r) => r.json()).then(setOnline).catch(setOffline);
 }
 </script>
+<script src="exam.js"></script>
 </body>
 </html>
