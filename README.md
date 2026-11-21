@@ -101,6 +101,12 @@ Two fixes came from reading the answers, not from the metrics:
 
 **5. Not found: say it, then help.** If the documents do not answer, the system first says so and then gives a 2-3 sentence general tip in a separate, clearly labelled yellow bubble. The tip may not invent amounts, dates or rules; for those it sends the student to their Erasmus office. The system can guess, but it always says when it is guessing.
 
+**6. An auditor for the answers.** "Cites a correct page" says nothing about whether the answer itself is right. So a second LLM grades every answer without knowing how it was produced ([judge.py](judge.py)). It sees the question, my reference answer, the system's answer and the text of the cited pages, and gives two verdicts: **correctness** (correct / partial / incorrect, against the reference) and **groundedness** (do the cited pages really contain what the answer says?). The two differ: an answer can be right but not supported by the page it cites (the model knew it anyway), or supported by its page and still wrong (the wrong page was retrieved, like the 11 vs 18 February deadline). Questions the documents do not cover, and answers where the system said "not found", are scored by rules, without the judge.
+
+<!-- RESULTS_JUDGE -->
+
+The judge (gpt-oss-120b) also grades its own model's answers and may be too kind to itself, so I checked a sample of its verdicts by hand.
+
 ## Known weaknesses
 
 - **Retrieval caps everything.** recall@5 is 0.71, so for about 9 of 31 questions the right page never reaches the LLM. Questions whose answer is spread over several pages (how the grant is calculated) or sits in a table (travel distance bands) are the hardest.
@@ -148,6 +154,7 @@ docker compose up --build
 | `memory_store.py`, `export_index.py` | the demo keeps chunks and embeddings in memory instead of PostgreSQL |
 | `demo/app.py` | the public demo on Streamlit Community Cloud: the same chat page runs as a Streamlit component, Python answers with the same retrieval code, the LLM runs on Groq |
 | `evaluate.py`, `eval_answers.py`, `metrics.py` | retrieval and answer evaluation |
+| `judge.py` | the auditor: an LLM grades answer correctness and groundedness |
 | `eval/questions.csv` | 34 questions with answers and correct pages |
 | `tests/` | unit tests (chunking, RRF, tokenizer, metrics), run by GitHub Actions |
 
