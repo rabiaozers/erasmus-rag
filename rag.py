@@ -119,18 +119,28 @@ def ask_llm(prompt):
 
 
 REWRITE_PROMPT = """Rewrite the user's question about the Erasmus+ programme as one clear, complete search query
-in English, as it would be phrased in the official Erasmus+ Programme Guide.
+in English. The documents are the EU Erasmus+ Programme Guide and Istanbul Gelisim University's (IGU) own guides.
 If the question is in another language (e.g. Turkish), translate it into English.
-Keep every name, country and number from the question. Do not answer it.
+Keep every name, country and number from the question, and words like exam, GPA, score or selection. Do not answer it.
+The EU guide says "traineeship" where IGU's guides say "internship": for a question about a traineeship
+or internship ("staj"), use both words.
 Examples: "can i go to spain" -> "Is Spain an eligible destination country for an Erasmus+ mobility?"
 "vize yardımı?" -> "What help do Erasmus+ participants get with their visa application?"
+"staj hibesi ne kadar" -> "How much is the monthly grant for an Erasmus+ traineeship (internship)?"
 Reply with the query only."""
 
 
 def rewrite_query(question):
     """Short questions ("can i go to italy") search badly; a fuller query finds the right pages."""
     query = chat(REWRITE_PROMPT, question).strip().strip('"').splitlines()[0][:300]
-    return query if len(query) > 5 else question
+    if len(query) <= 5:
+        return question
+    lower = query.lower()
+    if "traineeship" in lower and "internship" not in lower:      # the two documents use different words
+        query += " (internship)"
+    elif "internship" in lower and "traineeship" not in lower:
+        query += " (traineeship)"
+    return query
 
 
 FALLBACK_PROMPT = """The official Erasmus+ documents do not answer the user's question.
